@@ -162,3 +162,22 @@ html[data-theme="light"] .modal-backdrop{background:#18223566}
 .confetti-piece{position:absolute;top:-20px;display:block;background:var(--confetti-color);opacity:0;animation:confetti-fall var(--confetti-duration) var(--confetti-delay) cubic-bezier(.2,.65,.35,1) forwards}
 @keyframes confetti-fall{0%{transform:translate3d(0,-10px,0) rotate(0deg);opacity:1}85%{opacity:1}100%{transform:translate3d(var(--confetti-drift),110vh,0) rotate(var(--confetti-spin));opacity:.8}}
 @media(prefers-reduced-motion:reduce){.confetti-piece{animation:none;display:none}}
+
+/* Accounts and multiplayer */
+.account-button,.secondary-button{border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--text);padding:9px 12px;font:600 11px 'DM Sans',sans-serif;cursor:pointer}
+.account-button{margin-left:8px}.secondary-button:hover,.account-button:hover{border-color:var(--accent)}
+.account-panel{max-width:650px;margin:22px auto 0;padding:19px 22px;border:1px solid var(--line);border-radius:13px;background:var(--panel);text-align:left}
+.account-panel-head{display:flex;justify-content:space-between;align-items:center;gap:10px}.account-panel h3{margin:5px 0 0;font:600 17px 'Space Grotesk',sans-serif;color:var(--text)}
+.account-status,.account-panel p{font-size:11px;color:var(--muted)}.account-panel p{margin:12px 0}
+.auth-actions,.room-actions{display:flex;gap:8px;flex-wrap:wrap}.join-code-row{display:flex;gap:7px;flex:1;min-width:190px}
+.join-code-row input,.auth-modal input{min-width:0;flex:1;padding:10px 11px;border:1px solid var(--line);border-radius:8px;background:var(--panel2);color:var(--text);font:12px 'DM Sans',sans-serif}
+.room-status{margin-top:14px;padding:13px;border:1px solid var(--line);border-radius:9px;background:var(--panel2);color:var(--text);font-size:12px}
+.room-code-display{margin:9px 0;font:700 23px 'DM Mono',monospace;letter-spacing:4px;color:var(--accent)}
+.room-player-list{display:flex;flex-wrap:wrap;gap:7px;margin:9px 0}.room-player-list span{padding:5px 8px;border-radius:20px;background:var(--panel);color:var(--muted);font-size:10px}
+.room-start-button{margin:7px 8px 0 0}.account-logout{display:block;margin-top:8px}
+.auth-modal-backdrop{position:fixed;inset:0;z-index:30;display:grid;place-items:center;padding:18px;background:#050914c9;backdrop-filter:blur(5px)}
+.auth-modal{position:relative;width:min(100%,390px);padding:30px;background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:0 25px 80px #0008}
+.auth-modal h2{margin:8px 0 20px;font:600 26px 'Space Grotesk',sans-serif;color:var(--text)}
+.auth-modal label{display:flex;flex-direction:column;gap:7px;margin:12px 0;color:var(--text);font-size:12px}.auth-modal input{width:100%}
+.auth-modal .primary-button{margin-top:18px}.auth-error{min-height:16px;margin:10px 0 0;color:#ff8585;font-size:11px}
+@media(max-width:650px){.account-panel{padding:16px}.auth-actions{display:grid;grid-template-columns:1fr}.account-button{padding:7px 9px;font-size:10px}}
