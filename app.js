@@ -468,6 +468,7 @@ async function newRoute() {
 }
 
 function leaveRace() {
+  if (activeRoomCode) leaveRoom();
   stopTimer();
   if (state.requestController) state.requestController.abort();
   state.loading = false;
