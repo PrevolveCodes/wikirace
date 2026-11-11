@@ -285,3 +285,53 @@ html[data-theme="dark"] .difficulty-option small,html[data-theme="dark"] .sectio
 html[data-theme="dark"] .custom-route-heading,html[data-theme="dark"] .topbar-right,html[data-theme="dark"] .muted{color:#a2a9b1}
 html[data-theme="dark"] .wiki-frame{background:#fff;color:#202122}
 html[data-theme="dark"] .modal-backdrop,html[data-theme="dark"] .auth-modal-backdrop{background:#0009}
+
+
+/* Improve text contrast, especially for secondary labels in dark mode. */
+html[data-theme="dark"] .site-footer,
+html[data-theme="dark"] .site-footer span:first-child,
+html[data-theme="dark"] .hero-foot,
+html[data-theme="dark"] .eyebrow,
+html[data-theme="dark"] .section-kicker,
+html[data-theme="dark"] .difficulty-label,
+html[data-theme="dark"] .custom-route-heading,
+html[data-theme="dark"] .setup-note,
+html[data-theme="dark"] .custom-route-note,
+html[data-theme="dark"] .stat-label,
+html[data-theme="dark"] .route-label,
+html[data-theme="dark"] .game-footer,
+html[data-theme="dark"] .account-status,
+html[data-theme="dark"] .account-panel p,
+html[data-theme="dark"] .room-player-list span,
+html[data-theme="dark"] .help-modal li span,
+html[data-theme="dark"] .help-note,
+html[data-theme="dark"] .win-copy,
+html[data-theme="dark"] .win-stats span,
+html[data-theme="dark"] .back-button,
+html[data-theme="dark"] .toolbar-button,
+html[data-theme="dark"] .text-button,
+html[data-theme="dark"] .brand-light {
+  color:#c4cbd4;
+}
+html[data-theme="dark"] .difficulty-option small,
+html[data-theme="dark"] .current-location,
+html[data-theme="dark"] .topbar-right {
+  color:#b8c0ca;
+}
+html[data-theme="dark"] .random-tag {
+  color:#d5dbe3;
+}
+html[data-theme="dark"] .live-dot,
+html[data-theme="dark"] .location-pulse {
+  background:#b8c0ca;
+}
+html[data-theme="dark"] .secondary-button,
+html[data-theme="dark"] .account-button,
+html[data-theme="dark"] .google-auth-button,
+html[data-theme="dark"] .icon-button,
+html[data-theme="dark"] .theme-control select,
+html[data-theme="dark"] .back-button,
+html[data-theme="dark"] .toolbar-button,
+html[data-theme="dark"] .text-button {
+  color:#d7dde5;
+}
