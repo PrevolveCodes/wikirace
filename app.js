@@ -370,6 +370,7 @@ async function beginRace() {
     state.current = start;
     state.history = [];
     state.historyIndex = -1;
+    recordArticleVisit(start);
     $("startTitle").textContent = start;
     $("goalTitle").textContent = goal;
     $("currentTitle").textContent = start;
@@ -396,6 +397,7 @@ async function newRoute() {
   state.goal = goal;
   state.history = [];
   state.historyIndex = -1;
+  recordArticleVisit(start);
   state.clicks = 0;
   state.seconds = 0;
   $("startTitle").textContent = start;
