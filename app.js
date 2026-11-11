@@ -8,13 +8,40 @@ const screens = {
   win: $("winScreen")
 };
 
+// Easy uses very familiar subjects. Medium uses a wider mix of recognizable
+// topics, rather than completely random Wikipedia pages.
 const popularArticles = [
   "Minecraft", "United States", "YouTube", "Basketball", "The Beatles",
   "Solar System", "Dinosaur", "Pizza", "Nintendo", "Ancient Egypt",
   "Taylor Swift", "Artificial intelligence", "Ocean", "Space exploration",
   "Pokémon", "World War II", "Mount Everest", "Coffee", "Internet",
   "Leonardo da Vinci", "Amazon rainforest", "Video game", "Shark",
-  "New York City", "Moon", "Harry Potter", "Volcano", "Japan"
+  "New York City", "Moon", "Harry Potter", "Volcano", "Japan",
+  "Cat", "Dog", "Earth", "Sun", "Football", "Soccer", "Apple",
+  "Google", "Microsoft", "Disney", "Star Wars", "Spider-Man",
+  "Cars", "Dolphin", "Lion", "Elephant", "Great Wall of China",
+  "Eiffel Tower", "United Kingdom", "Canada", "Australia", "Paris",
+  "London", "Christmas", "Olympic Games", "Pizza", "YouTube"
+];
+
+const mediumArticles = [
+  "Roman Empire", "Greek mythology", "Black hole", "Coral reef",
+  "Taj Mahal", "Machu Picchu", "Renaissance", "French Revolution",
+  "Industrial Revolution", "Hubble Space Telescope", "Great Barrier Reef",
+  "Sahara", "Nile", "Amazon River", "Antarctica", "Volcano",
+  "Tyrannosaurus", "Octopus", "Honey bee", "Red panda",
+  "Bermuda Triangle", "Stonehenge", "Pompeii", "Silk Road",
+  "Mona Lisa", "Vincent van Gogh", "William Shakespeare",
+  "Sherlock Holmes", "J. R. R. Tolkien", "The Lord of the Rings",
+  "Nintendo Switch", "Super Mario", "Minecraft modding",
+  "Nintendo Entertainment System", "Tetris", "Chess",
+  "Formula One", "Tour de France", "Wimbledon Championships",
+  "Mount Fuji", "Grand Canyon", "Yellowstone National Park",
+  "Statue of Liberty", "Big Ben", "Colosseum", "Pyramids of Giza",
+  "Great Depression", "Cold War", "Apollo 11", "International Space Station",
+  "Solar eclipse", "Aurora", "Tsunami", "Hurricane",
+  "Renewable energy", "Electric car", "Robotics", "Photography",
+  "Jazz", "Classical music", "Origami", "Sushi", "Chocolate"
 ];
 
 const themeSelect = $("themeSelect");
@@ -166,26 +193,29 @@ async function chooseCustomRoute() {
   return [start, goal];
 }
 
+function pickTwoDifferent(pool) {
+  const shuffled = [...pool].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, 2);
+}
+
 async function chooseRoute() {
   if (state.difficulty === "easy") {
-    const first = popularArticles[Math.floor(Math.random() * popularArticles.length)];
-    let second = popularArticles[Math.floor(Math.random() * popularArticles.length)];
-    while (second === first) second = popularArticles[Math.floor(Math.random() * popularArticles.length)];
-    return [first, second];
+    return pickTwoDifferent(popularArticles);
   }
 
-  let titles = await apiRandomTitles(8);
-  titles = [...new Set(titles)];
-  if (titles.length < 2) titles = await apiRandomTitles(8);
-  if (state.difficulty === "hard") {
-    // A larger random sample makes it less likely that the route uses a familiar topic.
-    titles = await apiRandomTitles(20);
+  if (state.difficulty === "medium") {
+    return pickTwoDifferent(mediumArticles);
+  }
+
+  // Hard is the only mode that uses fully random Wikipedia articles.
+  // Ask for a larger batch, remove duplicates, then choose two at random.
+  let titles = [];
+  for (let attempt = 0; attempt < 3 && titles.length < 2; attempt++) {
+    const batch = await apiRandomTitles(30);
+    titles = [...new Set([...titles, ...batch])];
   }
   if (titles.length < 2) throw new Error("Could not find two different articles. Try again.");
-  const firstIndex = Math.floor(Math.random() * titles.length);
-  let secondIndex = Math.floor(Math.random() * titles.length);
-  while (secondIndex === firstIndex) secondIndex = Math.floor(Math.random() * titles.length);
-  return [titles[firstIndex], titles[secondIndex]];
+  return pickTwoDifferent(titles);
 }
 
 function updateStats() {
