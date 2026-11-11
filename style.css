@@ -185,3 +185,5 @@ html[data-theme="light"] .modal-backdrop{background:#18223566}
 .auth-modal-backdrop.hidden,.room-status.hidden{display:none!important}
 
 #topSignOutButton.hidden{display:none!important}
+
+.google-auth-button{width:100%;margin-top:4px;padding:11px 14px;border:1px solid var(--line);border-radius:8px;background:var(--panel2);color:var(--text);font:600 13px 'DM Sans',sans-serif;cursor:pointer}.google-auth-button:hover{border-color:var(--accent)}.auth-divider{display:flex;align-items:center;gap:10px;margin:15px 0;color:var(--muted);font-size:11px}.auth-divider:before,.auth-divider:after{content:"";height:1px;flex:1;background:var(--line)}.auth-modal .auth-divider+label{margin-top:0}
