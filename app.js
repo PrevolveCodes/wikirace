@@ -1,4 +1,8 @@
 const API = "https://en.wikipedia.org/w/api.php";
+const firebaseConfig = {apiKey:"AIzaSyCzSZ_x6ypPdezmJHAJEYkgHFz07M5sc6M",authDomain:"wikirace-ebf2d.firebaseapp.com",projectId:"wikirace-ebf2d",storageBucket:"wikirace-ebf2d.firebasestorage.app",messagingSenderId:"184191673134",appId:"1:184191673134:web:ec0cae69438c06873550bf",measurementId:"G-8Y3FE8HGST"};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
 const REST = "https://en.wikipedia.org/w/rest.php/v1/page/";
 const $ = (id) => document.getElementById(id);
 
@@ -405,6 +409,8 @@ function finishRace() {
   $("finalClicks").textContent = String(state.clicks);
   showScreen("win");
   launchConfetti();
+  updateRoomPlayer(true);
+  if(currentUser) db.collection("users").doc(currentUser.uid).set({races:firebase.firestore.FieldValue.increment(1),wins:firebase.firestore.FieldValue.increment(1),lastRaceAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true}).catch(()=>{});
 }
 
 async function beginRace() {
@@ -476,7 +482,7 @@ document.querySelectorAll(".difficulty-option").forEach(button => {
   });
 });
 
-$("startButton").addEventListener("click", beginRace);
+$("startButton").addEventListener("click", handleStartAction);
 $("restartButton").addEventListener("click", () => newRoute().catch(error => setToast(error.message)));
 $("previousButton").addEventListener("click", goBackArticle);
 $("quitButton").addEventListener("click", leaveRace);
@@ -512,6 +518,149 @@ window.addEventListener("message", async event => {
   }
   recordArticleVisit(title);
   await loadArticle(title, true);
+  updateRoomPlayer(false);
 });
 
 updateStats();
+
+let currentUser = null;
+let activeRoom = null;
+let activeRoomCode = "";
+let roomUnsubscribe = null;
+let playersUnsubscribe = null;
+let roomLaunchKey = "";
+window.roomPlayers = [];
+
+function authError(error) {
+  const map = {"auth/email-already-in-use":"That email already has an account.","auth/invalid-email":"Enter a valid email.","auth/weak-password":"Use at least 6 characters.","auth/user-not-found":"No account found with that email.","auth/wrong-password":"Incorrect password.","auth/invalid-credential":"Email or password is incorrect."};
+  return map[error.code] || error.message || "Something went wrong.";
+}
+function authMode(mode) {
+  $("authModeLabel").textContent = mode === "signup" ? "CREATE ACCOUNT" : "EMAIL ACCOUNT";
+  $("authTitle").textContent = mode === "signup" ? "Create account" : "Sign in";
+  $("authSubmit").textContent = mode === "signup" ? "Create account" : "Sign in";
+  $("authModal").dataset.mode = mode;
+  $("authError").textContent = "";
+  $("authModal").classList.remove("hidden");
+}
+function renderAccount() {
+  $("accountButton").textContent = currentUser ? (currentUser.displayName || currentUser.email || "Account").split(" ")[0] : "Sign in";
+  $("accountStatus").textContent = currentUser ? (currentUser.displayName || currentUser.email) : "Not signed in";
+  $("signedOutArea").classList.toggle("hidden", !!currentUser);
+  $("signedInArea").classList.toggle("hidden", !currentUser);
+}
+async function profileFor(user) {
+  const ref = db.collection("users").doc(user.uid);
+  const snap = await ref.get();
+  if (!snap.exists) {
+    const fallback = (user.displayName || (user.email || "Player").split("@")[0]).slice(0,20);
+    const chosen = prompt("Choose a WikiRace username:", fallback);
+    await ref.set({username:(chosen || fallback).trim().slice(0,20) || fallback,email:user.email || "",createdAt:firebase.firestore.FieldValue.serverTimestamp(),races:0,wins:0});
+  }
+}
+auth.onAuthStateChanged(async user => {
+  currentUser = user;
+  renderAccount();
+  if (user) { try { await profileFor(user); } catch(e) { setToast(authError(e)); } }
+  else { detachRoomListeners(); activeRoom=null; activeRoomCode=""; $("roomStatus").classList.add("hidden"); }
+  renderAccount();
+});
+$("accountButton").addEventListener("click",()=>currentUser ? $("accountPanel").scrollIntoView({behavior:"smooth",block:"center"}) : authMode("signin"));
+$("googleSignIn").addEventListener("click",async()=>{try{await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());}catch(e){setToast(authError(e));}});
+$("emailSignIn").addEventListener("click",()=>authMode("signin"));
+$("emailSignUp").addEventListener("click",()=>authMode("signup"));
+$("authClose").addEventListener("click",()=>$("authModal").classList.add("hidden"));
+$("authModal").addEventListener("click",e=>{if(e.target===$("authModal"))$("authModal").classList.add("hidden");});
+$("authForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  $("authSubmit").disabled=true;
+  try {
+    const email=$("authEmail").value.trim(), password=$("authPassword").value;
+    if($("authModal").dataset.mode==="signup") await auth.createUserWithEmailAndPassword(email,password);
+    else await auth.signInWithEmailAndPassword(email,password);
+    $("authModal").classList.add("hidden"); $("authForm").reset();
+  } catch(error) {$("authError").textContent=authError(error);}
+  finally {$("authSubmit").disabled=false;}
+});
+$("logoutButton").addEventListener("click",async()=>{if(activeRoomCode)await leaveRoom();await auth.signOut();});
+
+function detachRoomListeners(){if(roomUnsubscribe)roomUnsubscribe();if(playersUnsubscribe)playersUnsubscribe();roomUnsubscribe=null;playersUnsubscribe=null;}
+function makeRoomCode(){const chars="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";let s="";for(let i=0;i<6;i++)s+=chars[Math.floor(Math.random()*chars.length)];return s;}
+async function username(){const snap=await db.collection("users").doc(currentUser.uid).get();return snap.data()?.username || currentUser.displayName || (currentUser.email||"Player").split("@")[0];}
+function roomPanel(message,players=[]){
+  const el=$("roomStatus");el.classList.remove("hidden");el.replaceChildren();
+  const heading=document.createElement("strong");heading.textContent=message;el.appendChild(heading);
+  if(activeRoomCode){const code=document.createElement("div");code.className="room-code-display";code.textContent="GAME CODE: "+activeRoomCode;el.appendChild(code);}
+  if(players.length){const list=document.createElement("div");list.className="room-player-list";players.forEach(p=>{const item=document.createElement("span");item.textContent=p.username+(p.finished?" ✓":"");list.appendChild(item);});el.appendChild(list);}
+  if(activeRoom?.hostUid===currentUser?.uid && activeRoom.status==="waiting"){const b=document.createElement("button");b.className="secondary-button room-start-button";b.textContent="Start race for everyone";b.onclick=startRoomRace;el.appendChild(b);}
+  const leave=document.createElement("button");leave.className="text-button";leave.textContent="Leave game";leave.onclick=leaveRoom;el.appendChild(leave);
+}
+async function listenRoom(id,code){
+  detachRoomListeners();activeRoomCode=code;
+  roomUnsubscribe=db.collection("rooms").doc(id).onSnapshot(async snap=>{
+    if(!snap.exists){setToast("This room no longer exists.");detachRoomListeners();activeRoom=null;activeRoomCode="";return;}
+    activeRoom={id:snap.id,...snap.data()};
+    if(activeRoom.status==="racing"){
+      const key=activeRoom.id+":"+(activeRoom.startedAt?.toMillis?.()||"started");
+      if(roomLaunchKey!==key){roomLaunchKey=key;await launchSharedRace(activeRoom);}
+    } else roomPanel("Waiting for the host to start",window.roomPlayers);
+  },e=>setToast(authError(e)));
+  playersUnsubscribe=db.collection("rooms").doc(id).collection("players").onSnapshot(s=>{
+    window.roomPlayers=s.docs.map(d=>d.data());
+    if(activeRoom?.status==="waiting")roomPanel("Waiting for the host to start",window.roomPlayers);
+  });
+  roomPanel("Waiting for players");
+}
+async function createRoom(){
+  if(!currentUser)return authMode("signin");
+  try{
+    const code=makeRoomCode(), name=await username(), ref=db.collection("rooms").doc();
+    await ref.set({code,hostUid:currentUser.uid,status:"waiting",createdAt:firebase.firestore.FieldValue.serverTimestamp(),start:"",goal:"",difficulty:"medium"});
+    await ref.collection("players").doc(currentUser.uid).set({uid:currentUser.uid,username:name,clicks:0,seconds:0,current:"",finished:false});
+    await listenRoom(ref.id,code);
+  }catch(e){setToast(authError(e));}
+}
+async function joinRoom(){
+  if(!currentUser)return authMode("signin");
+  const code=$("joinCodeInput").value.trim().toUpperCase();
+  if(!/^[A-HJ-NP-Z2-9]{6}$/.test(code))return setToast("Enter a valid 6-character code.");
+  try{
+    const found=await db.collection("rooms").where("code","==",code).limit(1).get();
+    const doc=found.docs.find(d=>d.data().status==="waiting");
+    if(!doc)return setToast("No waiting game was found with that code.");
+    await doc.ref.collection("players").doc(currentUser.uid).set({uid:currentUser.uid,username:await username(),clicks:0,seconds:0,current:"",finished:false});
+    await listenRoom(doc.id,code);$("joinCodeInput").value="";
+  }catch(e){setToast(authError(e));}
+}
+async function startRoomRace(){
+  if(!activeRoom || activeRoom.hostUid!==currentUser?.uid || activeRoom.status!=="waiting")return;
+  const b=$("roomStatus").querySelector(".room-start-button");if(b)b.disabled=true;
+  try{
+    const custom=await chooseCustomRoute(), route=custom || await chooseRoute();
+    await db.collection("rooms").doc(activeRoom.id).update({start:route[0],goal:route[1],difficulty:state.difficulty,status:"racing",startedAt:firebase.firestore.FieldValue.serverTimestamp()});
+  }catch(e){setToast(authError(e));if(b)b.disabled=false;}
+}
+async function launchSharedRace(room){
+  stopTimer();if(state.requestController)state.requestController.abort();
+  state.clicks=0;state.seconds=0;state.loading=false;state.difficulty=room.difficulty||"medium";
+  state.start=room.start;state.goal=room.goal;state.current=room.start;state.history=[];state.historyIndex=-1;
+  recordArticleVisit(room.start);$("startTitle").textContent=room.start;$("goalTitle").textContent=room.goal;$("currentTitle").textContent=room.start;
+  updateStats();showScreen("game");startTimer();await loadArticle(room.start,false);
+  roomPanel("Race in progress",window.roomPlayers);
+}
+async function updateRoomPlayer(finished=false){
+  if(!activeRoom || activeRoom.status!=="racing" || !currentUser)return;
+  try{await db.collection("rooms").doc(activeRoom.id).collection("players").doc(currentUser.uid).set({uid:currentUser.uid,username:await username(),clicks:state.clicks,seconds:state.seconds,current:state.current||"",finished,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});}catch(e){console.warn(e);}
+}
+async function leaveRoom(){
+  if(activeRoom&&currentUser){try{await db.collection("rooms").doc(activeRoom.id).collection("players").doc(currentUser.uid).delete();}catch(e){}}
+  detachRoomListeners();activeRoom=null;activeRoomCode="";roomLaunchKey="";window.roomPlayers=[];
+  $("roomStatus").classList.add("hidden");setToast("You left the game.");
+}
+async function handleStartAction(){
+  if(activeRoomCode){if(activeRoom?.hostUid===currentUser?.uid)await startRoomRace();else setToast("Waiting for the host to start the race.");return;}
+  await beginRace();
+}
+$("createRoomButton").addEventListener("click",createRoom);
+$("joinRoomButton").addEventListener("click",joinRoom);
+$("joinCodeInput").addEventListener("input",()=>{$("joinCodeInput").value=$("joinCodeInput").value.toUpperCase().replace(/[^A-HJ-NP-Z2-9]/g,"").slice(0,6);});
