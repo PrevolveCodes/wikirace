@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#111827">
+  <meta name="description" content="Race across Wikipedia articles. Reach the destination in as few clicks and as little time as possible.">
+  <title>WikiRace — Race across Wikipedia</title>
+  <link rel="preconnect" href="https://en.wikipedia.org">
+  <link rel="preconnect" href="https://upload.wikimedia.org">
+  <link rel="stylesheet" href="style.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="WikiRace home" id="homeLink">
+        <span class="brand-mark">W</span>
+        <span>Wiki<span class="brand-light">Race</span></span>
+      </a>
+      <div class="topbar-right">
+        <span class="live-dot"></span><span class="topbar-label">Powered by Wikipedia</span>
+        <button class="icon-button" id="helpButton" aria-label="How to play" title="How to play">?</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="screen active" id="homeScreen">
+        <div class="hero">
+          <div class="eyebrow"><span class="eyebrow-line"></span> THE INTERNET'S BIGGEST CONNECT-THE-DOTS <span class="eyebrow-line"></span></div>
+          <h1>One start.<br><span class="gradient-text">One destination.</span><br>How fast can you get there?</h1>
+          <p class="hero-copy">Jump through real Wikipedia articles. Follow the links, find the connection, and reach your destination before the clock runs out.</p>
+          <div class="setup-card">
+            <div class="setup-heading">
+              <div><span class="section-kicker">YOUR NEXT CHALLENGE</span><h2>Set up your race</h2></div>
+              <span class="random-tag"><span>✳</span> RANDOM ROUTE</span>
+            </div>
+            <div class="difficulty-label">DIFFICULTY</div>
+            <div class="difficulty-options" role="group" aria-label="Choose difficulty">
+              <button class="difficulty-option selected" data-difficulty="easy"><span class="difficulty-icon easy-icon">●</span><span><strong>Easy</strong><small>Popular topics</small></span><span class="option-check">✓</span></button>
+              <button class="difficulty-option" data-difficulty="medium"><span class="difficulty-icon medium-icon">◆</span><span><strong>Medium</strong><small>Anything goes</small></span><span class="option-check">✓</span></button>
+              <button class="difficulty-option" data-difficulty="hard"><span class="difficulty-icon hard-icon">✦</span><span><strong>Hard</strong><small>Obscure topics</small></span><span class="option-check">✓</span></button>
+            </div>
+            <button class="primary-button" id="startButton"><span>Start a race</span><span class="button-arrow">→</span></button>
+            <p class="setup-note">No account needed. Just you and the entire encyclopedia.</p>
+          </div>
+          <div class="hero-foot"><span>01 <i></i> PICK A ROUTE</span><span>02 <i></i> FOLLOW THE LINKS</span><span>03 <i></i> REACH THE GOAL</span></div>
+        </div>
+      </section>
+
+      <section class="screen" id="gameScreen">
+        <div class="race-header">
+          <button class="back-button" id="quitButton">← <span>Leave race</span></button>
+          <div class="race-stats">
+            <div class="stat"><span class="stat-label">TIME</span><strong id="timer">00:00</strong></div>
+            <div class="stat"><span class="stat-label">CLICKS</span><strong id="clickCount">0</strong></div>
+            <div class="stat"><span class="stat-label">BEST</span><strong id="bestScore">—</strong></div>
+          </div>
+        </div>
+        <div class="route-card">
+          <div class="route-point"><span class="route-label">START</span><strong id="startTitle">Loading…</strong></div>
+          <div class="route-progress"><span class="route-line"></span><span class="route-car">➜</span><span class="route-line"></span></div>
+          <div class="route-point destination"><span class="route-label">DESTINATION</span><strong id="goalTitle">Loading…</strong></div>
+        </div>
+        <div class="game-toolbar">
+          <div class="current-location"><span class="location-pulse"></span><span>YOU ARE AT</span><strong id="currentTitle">Loading article…</strong></div>
+          <button class="toolbar-button" id="restartButton" title="Get a new route">↻ <span>New route</span></button>
+        </div>
+        <div class="wiki-frame">
+          <div class="wiki-topline"><div class="wiki-dots"><i></i><i></i><i></i></div><span>EN.WIKIPEDIA.ORG</span><span class="wiki-secure">● LIVE ARTICLE</span></div>
+          <div class="wiki-content" id="articleContent">
+            <div class="article-loading"><div class="loader"></div><p>Finding your first article…</p></div>
+          </div>
+          <div class="article-error hidden" id="articleError"></div>
+        </div>
+        <div class="game-footer"><span>Click links inside the article to travel.</span><span>Wikipedia content is provided under its respective licenses.</span></div>
+      </section>
+
+      <section class="screen" id="winScreen">
+        <div class="win-card">
+          <div class="win-icon">✓</div>
+          <div class="eyebrow">DESTINATION REACHED</div>
+          <h1>You made it.</h1>
+          <p class="win-copy">You navigated from <strong id="winStart">Start</strong> to <strong id="winGoal">Finish</strong>.</p>
+          <div class="win-stats"><div><strong id="finalTime">00:00</strong><span>TIME</span></div><div><strong id="finalClicks">0</strong><span>CLICKS</span></div></div>
+          <button class="primary-button" id="playAgainButton"><span>Race again</span><span class="button-arrow">→</span></button>
+          <button class="text-button" id="homeButton">Back to home</button>
+        </div>
+      </section>
+    </main>
+    <footer class="site-footer"><span>WikiRace</span><span>Not affiliated with the Wikimedia Foundation.</span></footer>
+  </div>
+
+  <div class="modal-backdrop hidden" id="helpModal" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+    <div class="help-modal">
+      <button class="modal-close" id="closeHelp" aria-label="Close">×</button>
+      <span class="section-kicker">THE RULES ARE SIMPLE</span>
+      <h2 id="helpTitle">How to play</h2>
+      <ol><li><strong>Start at the first article.</strong><span>Your starting and destination pages are picked for you.</span></li><li><strong>Click links to travel.</strong><span>Only links inside the article count. Search and browser navigation won't help.</span></li><li><strong>Reach the destination.</strong><span>Get there with the lowest time and fewest clicks you can.</span></li></ol>
+      <p class="help-note">WikiRace displays real Wikipedia article content. Article text and media remain subject to their original licenses.</p>
+    </div>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
