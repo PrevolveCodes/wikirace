@@ -181,3 +181,5 @@ html[data-theme="light"] .modal-backdrop{background:#18223566}
 .auth-modal label{display:flex;flex-direction:column;gap:7px;margin:12px 0;color:var(--text);font-size:12px}.auth-modal input{width:100%}
 .auth-modal .primary-button{margin-top:18px}.auth-error{min-height:16px;margin:10px 0 0;color:#ff8585;font-size:11px}
 @media(max-width:650px){.account-panel{padding:16px}.auth-actions{display:grid;grid-template-columns:1fr}.account-button{padding:7px 9px;font-size:10px}}
+
+.auth-modal-backdrop.hidden,.room-status.hidden{display:none!important}
