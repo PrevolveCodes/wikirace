@@ -87,3 +87,14 @@ h1,h2,p{margin-top:0}
 .toast{position:fixed;bottom:22px;left:50%;transform:translate(-50%,15px);padding:10px 15px;border:1px solid #42516a;border-radius:8px;background:#172239;color:#edf3fc;font-size:12px;opacity:0;pointer-events:none;transition:.2s;z-index:20}.toast.show{opacity:1;transform:translate(-50%,0)}
 @media(max-width:650px){.app-shell{padding:0 18px}.topbar{height:66px}.topbar-label{font-size:10px}.hero{margin:55px auto 40px}.hero h1{letter-spacing:-2.3px}.hero-copy{font-size:13px}.setup-card{padding:22px 17px}.setup-heading{align-items:flex-start}.random-tag{font-size:8px}.difficulty-options{gap:6px}.difficulty-option{gap:6px;padding:11px 8px}.difficulty-option small{font-size:9px}.difficulty-option strong{font-size:11px}.hero-foot{gap:12px;font-size:7px;letter-spacing:.4px}.route-card{grid-template-columns:1fr 55px 1fr;gap:8px;padding:14px 12px}.route-point strong{font-size:12px}.route-progress{gap:4px}.route-car{font-size:12px}.race-stats{gap:13px}.stat{min-width:43px}.stat strong{font-size:14px}.back-button span{display:none}.wiki-frame{min-height:550px}.wiki-content{padding:25px 17px 45px;font-size:13px}.wiki-content h1{font-size:25px}.wiki-content h2{font-size:20px}.wiki-content figure,.wiki-content .infobox{float:none;margin:10px auto;max-width:100%}.game-footer{flex-direction:column;gap:5px}.site-footer{font-size:9px}.win-card{margin:65px auto;padding:30px 22px}}
 @media(max-width:390px){.difficulty-option{display:block}.difficulty-icon{display:block;margin-bottom:6px}.hero-foot{display:none}.topbar-label{display:none}}
+
+
+/* The article itself uses Wikipedia's live Vector ResourceLoader stylesheets.
+   These rules only define the game viewport around that original markup. */
+.wiki-topline{display:none}
+.wiki-frame{background:#fff;border:1px solid #c8ccd1;border-radius:3px;overflow:visible;min-height:600px;color:#202122;box-shadow:0 12px 40px #0003}
+.wiki-content{max-width:none;min-height:600px;padding:24px clamp(18px,4vw,48px) 48px;background:#fff;color:#202122;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;overflow-wrap:normal}
+.wiki-content .mw-body{max-width:100%;margin:0 auto}
+.wiki-content .mw-body-content{font-family:inherit}
+.wiki-content img{max-width:100%;height:auto}
+@media(max-width:650px){.wiki-content{padding:18px 14px 35px}}
