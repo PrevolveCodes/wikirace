@@ -100,10 +100,36 @@ h1,h2,p{margin-top:0}
 @media(max-width:650px){.wiki-content{padding:18px 14px 35px}}
 
 
-/* Tighter vertical spacing: keep the main content closer to the header. */
-.hero{margin:clamp(24px,4vh,46px) auto 34px}
-.race-header{padding:12px 0 12px}
-.game-toolbar{padding:11px 2px}
-.wiki-content{padding-top:18px}
-.article-loading{min-height:320px}
-@media(max-width:650px){.hero{margin:28px auto 28px}.race-header{padding:9px 0}.wiki-content{padding-top:16px}.article-loading{min-height:260px}}
+/* Theme selector */
+.theme-control select{appearance:none;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--text);padding:7px 25px 7px 9px;font:11px 'DM Sans',sans-serif;cursor:pointer}
+.theme-control{position:relative}
+.theme-control:after{content:"▾";position:absolute;right:9px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none;font-size:10px}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+html[data-theme="light"]{color-scheme:light;--bg:#f3f5f8;--panel:#fff;--panel2:#edf1f6;--line:#d5dce6;--muted:#667085;--text:#202938;--accent:#4f8b24;--accent2:#328b68;--blue:#466bc5;--danger:#bd4545}
+html[data-theme="light"] body{background:var(--bg);color:var(--text)}
+html[data-theme="light"] .topbar,html[data-theme="light"] .site-footer{border-color:#dce1e8}
+html[data-theme="light"] .brand-light{color:#586579}
+html[data-theme="light"] .icon-button{color:#475467}
+html[data-theme="light"] .eyebrow{color:#4f8b24}
+html[data-theme="light"] .eyebrow-line{background:#4f8b2466}
+html[data-theme="light"] .hero-copy,html[data-theme="light"] .win-copy{color:#586579}
+html[data-theme="light"] .setup-card,html[data-theme="light"] .win-card{background:#fff;border-color:#d5dce6;box-shadow:0 15px 45px #25324a12}
+html[data-theme="light"] .random-tag{border-color:#cbdcbe;color:#477a25}
+html[data-theme="light"] .difficulty-option{background:#f8fafc;border-color:#d5dce6;color:#202938}
+html[data-theme="light"] .difficulty-option small,html[data-theme="light"] .setup-note,html[data-theme="light"] .hero-foot,html[data-theme="light"] .site-footer{color:#667085}
+html[data-theme="light"] .difficulty-option.selected{background:#4f8b2410;border-color:#4f8b24}
+html[data-theme="light"] .primary-button{background:#78b947;color:#142014}
+html[data-theme="light"] .route-card{background:#fff;border-color:#d5dce6}
+html[data-theme="light"] .current-location{color:#667085}
+html[data-theme="light"] .current-location strong{color:#202938}
+html[data-theme="light"] .back-button,html[data-theme="light"] .toolbar-button,html[data-theme="light"] .text-button{color:#586579}
+html[data-theme="light"] .win-stats div{background:#f8fafc;border-color:#d5dce6}
+html[data-theme="light"] .win-stats span{color:#667085}
+html[data-theme="light"] .help-modal{background:#fff;border-color:#d5dce6}
+html[data-theme="light"] .help-modal li strong{color:#202938}
+html[data-theme="light"] .help-modal li span,html[data-theme="light"] .help-note{color:#586579}
+html[data-theme="light"] .help-note{border-color:#d5dce6}
+html[data-theme="light"] .modal-close{color:#586579}
+html[data-theme="light"] .toast{background:#fff;border-color:#d5dce6;color:#202938}
+html[data-theme="light"] .modal-backdrop{background:#18223566}
+@media(max-width:650px){.theme-control select{padding:6px 22px 6px 7px;font-size:10px}.topbar-right{gap:7px}}
