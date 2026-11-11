@@ -47,6 +47,7 @@
               <label>Starting article<input id="customStart" type="text" placeholder="e.g. Minecraft" autocomplete="off" maxlength="120"></label>
               <label>Destination article<input id="customGoal" type="text" placeholder="e.g. World War II" autocomplete="off" maxlength="120"></label>
               <p class="custom-route-note">Leave both blank to get a random route.</p>
+              <label class="back-setting"><input type="checkbox" id="backEnabled" checked> Allow going back to previous articles</label>
             </div>
             <button class="primary-button" id="startButton"><span>Start a race</span><span class="button-arrow">→</span></button>
             <p class="setup-note">No account needed. Just you and the entire encyclopedia.</p>
@@ -71,7 +72,7 @@
         </div>
         <div class="game-toolbar">
           <div class="current-location"><span class="location-pulse"></span><span>YOU ARE AT</span><strong id="currentTitle">Loading article…</strong></div>
-          <button class="toolbar-button" id="restartButton" title="Get a new route">↻ <span>New route</span></button>
+          <div class="toolbar-actions"><button class="toolbar-button" id="previousButton" title="Go to previous article" disabled>← <span>Back</span></button><button class="toolbar-button" id="restartButton" title="Get a new route">↻ <span>New route</span></button></div>
         </div>
         <div class="wiki-frame">
           <div class="wiki-topline"><div class="wiki-dots"><i></i><i></i><i></i></div><span>EN.WIKIPEDIA.ORG</span><span class="wiki-secure">● LIVE ARTICLE</span></div>
