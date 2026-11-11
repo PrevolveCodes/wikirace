@@ -17,6 +17,30 @@ const popularArticles = [
   "New York City", "Moon", "Harry Potter", "Volcano", "Japan"
 ];
 
+const themeSelect = $("themeSelect");
+const themePreference = localStorage.getItem("wikirace-theme") || "system";
+const colorScheme = window.matchMedia("(prefers-color-scheme: light)");
+function applyTheme() {
+  const resolved = themePreference === "system" ? (colorScheme.matches ? "light" : "dark") : themePreference;
+  document.documentElement.dataset.theme = resolved;
+  themeSelect.value = themePreference;
+}
+let activeThemePreference = themePreference;
+function setThemePreference(value) {
+  activeThemePreference = value;
+  localStorage.setItem("wikirace-theme", value);
+  const resolved = value === "system" ? (colorScheme.matches ? "light" : "dark") : value;
+  document.documentElement.dataset.theme = resolved;
+  themeSelect.value = value;
+}
+themeSelect.addEventListener("change", () => setThemePreference(themeSelect.value));
+colorScheme.addEventListener("change", () => {
+  if (activeThemePreference === "system") {
+    document.documentElement.dataset.theme = colorScheme.matches ? "light" : "dark";
+  }
+});
+applyTheme();
+
 const state = {
   difficulty: "easy",
   start: null,
