@@ -147,25 +147,14 @@ function setArticleLoading(title) {
   $("articleContent").innerHTML = '<div class="article-loading"><div class="loader"></div><p>Loading the Wikipedia article…</p></div>';
 }
 
-function installWikipediaStyles(parsed) {
-  // The REST HTML response includes the exact ResourceLoader stylesheets
-  // used by Wikipedia for this article. Reuse those instead of approximating
-  // the encyclopedia's typography and layout with local CSS.
-  parsed.querySelectorAll('head link[rel="stylesheet"][href]').forEach(source => {
-    const href = new URL(source.getAttribute("href"), "https://en.wikipedia.org").href;
-    if (!document.head.querySelector('link[rel="stylesheet"][href="' + CSS.escape(href) + '"]')) {
-      const stylesheet = document.createElement("link");
-      stylesheet.rel = "stylesheet";
-      stylesheet.href = href;
-      stylesheet.dataset.wikipediaStylesheet = "true";
-      document.head.appendChild(stylesheet);
-    }
-  });
+function getWikipediaStyles(parsed) {
+  return [...parsed.querySelectorAll('head link[rel="stylesheet"][href]')]
+    .map(source => new URL(source.getAttribute("href"), "https://en.wikipedia.org").href);
 }
 
 function cleanAndPrepareArticle(html, title) {
   const parsed = new DOMParser().parseFromString(html, "text/html");
-  installWikipediaStyles(parsed);
+  const stylesheets = getWikipediaStyles(parsed);
   const root = parsed.querySelector(".mw-parser-output") || parsed.body;
   const content = root.cloneNode(true);
 
@@ -227,7 +216,7 @@ function cleanAndPrepareArticle(html, title) {
   body.className = "mw-body-content";
   body.appendChild(content);
   wrapper.append(heading, body);
-  return wrapper;
+  return { wrapper, stylesheets };
 }
 
 async function loadArticle(title, countClick = false) {
@@ -256,7 +245,14 @@ async function loadArticle(title, countClick = false) {
     if (!response.ok) throw new Error(response.status === 404 ? "That article could not be found." : "Wikipedia returned an error. Please try another link.");
     const html = await response.text();
     const prepared = cleanAndPrepareArticle(html, title);
-    $("articleContent").replaceChildren(prepared);
+    const frame = document.createElement("iframe");
+    frame.className = "wiki-article-frame";
+    frame.title = title + " — Wikipedia article";
+    frame.setAttribute("sandbox", "allow-scripts allow-popups");
+    const stylesheetLinks = prepared.stylesheets.map(href => '<link rel="stylesheet" href="' + href.replace(/&/g, "&amp;").replace(/"/g, "&quot;") + '">').join("");
+    const articleMarkup = prepared.wrapper.outerHTML;
+    frame.srcdoc = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' + stylesheetLinks + '<style>html,body{margin:0;padding:0;background:#fff;color:#202122;font-family:Arial,Helvetica,sans-serif}body{padding:24px clamp(18px,4vw,48px) 48px;box-sizing:border-box}.mw-body{max-width:none!important;margin:0 auto!important}.mw-body-content{font-family:Arial,Helvetica,sans-serif}img{max-width:100%;height:auto}</style></head><body>' + articleMarkup + '<script>document.addEventListener("click",function(e){const a=e.target.closest("a[data-wiki-title]");if(a){e.preventDefault();parent.postMessage({type:"wikirace-navigation",title:a.dataset.wikiTitle},"*");}});</script></body></html>';
+    $("articleContent").replaceChildren(frame);
     $("articleError").classList.add("hidden");
     $("currentTitle").textContent = title;
     const sourceLink = $("sourceLink");
@@ -362,11 +358,10 @@ document.addEventListener("keydown", event => {
   if (event.key === "Escape") $("helpModal").classList.add("hidden");
 });
 
-$("articleContent").addEventListener("click", async event => {
-  const link = event.target.closest("a[data-wiki-title]");
-  if (!link) return;
-  event.preventDefault();
-  const title = link.dataset.wikiTitle;
+window.addEventListener("message", async event => {
+  if (event.source !== $("articleContent").querySelector("iframe")?.contentWindow) return;
+  if (event.data?.type !== "wikirace-navigation") return;
+  const title = String(event.data.title || "");
   if (!title || state.loading) return;
   if (normaliseTitle(title) === normaliseTitle(state.goal)) {
     state.clicks += 1;
