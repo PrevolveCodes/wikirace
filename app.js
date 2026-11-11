@@ -132,7 +132,7 @@ function cleanAndPrepareArticle(html, title) {
 
   content.querySelectorAll("a").forEach(anchor => {
     const href = anchor.getAttribute("href");
-    if (!href) return;
+    if (!href || href.startsWith("#")) return;
     let url;
     try { url = new URL(href, "https://en.wikipedia.org/wiki/" + encodeURIComponent(title.replace(/ /g, "_"))); }
     catch { anchor.removeAttribute("href"); return; }
