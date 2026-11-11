@@ -571,6 +571,7 @@ auth.onAuthStateChanged(async user => {
 });
 $("accountButton").addEventListener("click",()=>currentUser ? $("accountPanel").scrollIntoView({behavior:"smooth",block:"center"}) : authMode("signin"));
 $("googleSignIn").addEventListener("click",async()=>{try{await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());}catch(e){setToast(authError(e));}});
+$("modalGoogleSignIn").addEventListener("click",async()=>{try{await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());$("authModal").classList.add("hidden");}catch(e){$("authError").textContent=authError(e);}});
 $("emailSignIn").addEventListener("click",()=>authMode("signin"));
 $("emailSignUp").addEventListener("click",()=>authMode("signup"));
 $("authSwitchButton").addEventListener("click",()=>authMode($("authModal").dataset.mode === "signup" ? "signin" : "signup"));
