@@ -139,3 +139,13 @@ html[data-theme="light"] .modal-backdrop{background:#18223566}
 .wiki-article-frame{display:block;width:100%;height:600px;min-height:0;border:0;background:#fff}
 @media(max-width:650px){.app-shell{padding:0 12px}.wiki-article-frame{height:600px}}
 
+
+
+.custom-route-fields{margin:22px 0 18px;padding-top:18px;border-top:1px solid var(--line);display:grid;grid-template-columns:1fr 1fr;gap:12px;text-align:left}
+.custom-route-heading{grid-column:1/-1;font:500 9px 'DM Mono',monospace;letter-spacing:1.3px;color:var(--muted)}
+.custom-route-fields label{display:flex;flex-direction:column;gap:7px;color:var(--text);font-size:12px;font-weight:600}
+.custom-route-fields input{width:100%;min-width:0;padding:11px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel2);color:var(--text);font:13px 'DM Sans',sans-serif;outline:none}
+.custom-route-fields input:focus{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 18%,transparent)}
+.custom-route-fields input::placeholder{color:var(--muted)}
+.custom-route-note{grid-column:1/-1;margin:0;color:var(--muted);font-size:11px}
+@media(max-width:650px){.custom-route-fields{grid-template-columns:1fr;gap:10px}.custom-route-heading,.custom-route-note{grid-column:1}}
