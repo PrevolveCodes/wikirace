@@ -546,6 +546,7 @@ function authMode(mode) {
 }
 function renderAccount() {
   $("accountButton").textContent = currentUser ? (currentUser.displayName || currentUser.email || "Account").split(" ")[0] : "Sign in";
+  $("topSignOutButton").classList.toggle("hidden", !currentUser);
   $("accountStatus").textContent = currentUser ? (currentUser.displayName || currentUser.email) : "Not signed in";
   $("signedOutArea").classList.toggle("hidden", !!currentUser);
   $("signedInArea").classList.toggle("hidden", !currentUser);
@@ -584,6 +585,7 @@ $("authForm").addEventListener("submit",async e=>{
   finally {$("authSubmit").disabled=false;}
 });
 $("logoutButton").addEventListener("click",async()=>{if(activeRoomCode)await leaveRoom();await auth.signOut();});
+$("topSignOutButton").addEventListener("click",async()=>{if(activeRoomCode)await leaveRoom();await auth.signOut();setToast("Signed out.");});
 
 function detachRoomListeners(){if(roomUnsubscribe)roomUnsubscribe();if(playersUnsubscribe)playersUnsubscribe();roomUnsubscribe=null;playersUnsubscribe=null;}
 function makeRoomCode(){const chars="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";let s="";for(let i=0;i<6;i++)s+=chars[Math.floor(Math.random()*chars.length)];return s;}
