@@ -123,12 +123,31 @@ function setArticleLoading(title) {
   $("articleContent").innerHTML = '<div class="article-loading"><div class="loader"></div><p>Loading the Wikipedia article…</p></div>';
 }
 
+function installWikipediaStyles(parsed) {
+  // The REST HTML response includes the exact ResourceLoader stylesheets
+  // used by Wikipedia for this article. Reuse those instead of approximating
+  // the encyclopedia's typography and layout with local CSS.
+  parsed.querySelectorAll('head link[rel="stylesheet"][href]').forEach(source => {
+    const href = new URL(source.getAttribute("href"), "https://en.wikipedia.org").href;
+    if (!document.head.querySelector('link[rel="stylesheet"][href="' + CSS.escape(href) + '"]')) {
+      const stylesheet = document.createElement("link");
+      stylesheet.rel = "stylesheet";
+      stylesheet.href = href;
+      stylesheet.dataset.wikipediaStylesheet = "true";
+      document.head.appendChild(stylesheet);
+    }
+  });
+}
+
 function cleanAndPrepareArticle(html, title) {
   const parsed = new DOMParser().parseFromString(html, "text/html");
+  installWikipediaStyles(parsed);
   const root = parsed.querySelector(".mw-parser-output") || parsed.body;
   const content = root.cloneNode(true);
 
-  content.querySelectorAll("script, style, link, meta, noscript, form, .mw-editsection, .noprint, .mw-empty-elt, .shortdescription, .mw-indicators, .mw-references-wrap").forEach(node => node.remove());
+  // Keep the original article markup and its Wikipedia-specific classes.
+  // Only remove editing controls and executable/interactive page chrome.
+  content.querySelectorAll("script, style, link, meta, noscript, form, .mw-editsection, .mw-empty-elt, .mw-indicators").forEach(node => node.remove());
 
   content.querySelectorAll("a").forEach(anchor => {
     const href = anchor.getAttribute("href");
