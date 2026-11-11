@@ -138,3 +138,11 @@ html[data-theme="light"] .modal-backdrop{background:#18223566}
 /* Keep Wikipedia's page styles inside its own frame. */
 .wiki-article-frame{display:block;width:100%;min-height:700px;height:calc(100vh - 330px);border:0;background:#fff}
 @media(max-width:650px){.app-shell{padding:0 12px}.wiki-article-frame{height:calc(100vh - 300px);min-height:600px}}
+
+
+/* Give the article reader a genuinely long page to scroll through. */
+.wiki-frame{min-height:1200px}
+.wiki-content{min-height:1200px;padding:24px clamp(18px,4vw,48px) 60px}
+@media(max-width:650px){
+  .wiki-frame,.wiki-content{min-height:1000px}
+}
