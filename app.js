@@ -18,6 +18,14 @@ const popularArticles = [
 ];
 
 const themeSelect = $("themeSelect");
+const backEnabledInput = $("backEnabled");
+let backEnabled = localStorage.getItem("wikirace-back-enabled") !== "false";
+backEnabledInput.checked = backEnabled;
+backEnabledInput.addEventListener("change", () => {
+  backEnabled = backEnabledInput.checked;
+  localStorage.setItem("wikirace-back-enabled", String(backEnabled));
+  updateBackButton();
+});
 const themePreference = localStorage.getItem("wikirace-theme") || "system";
 const colorScheme = window.matchMedia("(prefers-color-scheme: light)");
 function applyTheme() {
@@ -51,8 +59,31 @@ const state = {
   timerInterval: null,
   seconds: 0,
   loading: false,
-  requestController: null
+  requestController: null,
+  history: [],
+  historyIndex: -1
 };
+
+function updateBackButton() {
+  const button = $("previousButton");
+  button.disabled = !backEnabled || state.loading || state.historyIndex <= 0;
+  button.classList.toggle("hidden", !backEnabled);
+}
+
+function recordArticleVisit(title) {
+  state.history = state.history.slice(0, state.historyIndex + 1);
+  state.history.push(title);
+  state.historyIndex = state.history.length - 1;
+  updateBackButton();
+}
+
+async function goBackArticle() {
+  if (!backEnabled || state.loading || state.historyIndex <= 0) return;
+  state.historyIndex -= 1;
+  const previousTitle = state.history[state.historyIndex];
+  updateBackButton();
+  await loadArticle(previousTitle, false);
+}
 
 function showScreen(name) {
   Object.entries(screens).forEach(([key, element]) => {
@@ -264,7 +295,9 @@ async function loadArticle(title, countClick = false) {
   state.loading = true;
   if (countClick) state.clicks += 1;
   state.current = title;
+  updateBackButton();
   updateStats();
+updateBackButton();
   $("currentTitle").textContent = title;
   setArticleLoading(title);
 
@@ -292,6 +325,7 @@ async function loadArticle(title, countClick = false) {
     frame.srcdoc = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' + stylesheetLinks + '<style>html,body{margin:0;padding:0;background:#fff;color:#202122;font-family:Arial,Helvetica,sans-serif}body{padding:24px clamp(18px,4vw,48px) 48px;box-sizing:border-box}.mw-body{max-width:none!important;margin:0 auto!important}.mw-body-content{font-family:Arial,Helvetica,sans-serif}img{max-width:100%;height:auto}</style></head><body>' + articleMarkup + '<script>function reportHeight(){parent.postMessage({type:"wikirace-height",height:Math.ceil(document.documentElement.scrollHeight)},"*")}const heightObserver=new ResizeObserver(reportHeight);heightObserver.observe(document.documentElement);window.addEventListener("load",reportHeight);document.addEventListener("click",function(e){const a=e.target.closest("a[data-wiki-title]");if(a){e.preventDefault();parent.postMessage({type:"wikirace-navigation",title:a.dataset.wikiTitle},"*");}});reportHeight();</script></body></html>';
     $("articleContent").replaceChildren(frame);
     $("articleError").classList.add("hidden");
+    updateBackButton();
     $("currentTitle").textContent = title;
     const sourceLink = $("sourceLink");
     sourceLink.href = "https://en.wikipedia.org/wiki/" + encodeURIComponent(title.replace(/ /g, "_"));
@@ -334,6 +368,8 @@ async function beginRace() {
     state.start = start;
     state.goal = goal;
     state.current = start;
+    state.history = [];
+    state.historyIndex = -1;
     $("startTitle").textContent = start;
     $("goalTitle").textContent = goal;
     $("currentTitle").textContent = start;
@@ -358,6 +394,8 @@ async function newRoute() {
   const [start, goal] = await chooseRoute();
   state.start = start;
   state.goal = goal;
+  state.history = [];
+  state.historyIndex = -1;
   state.clicks = 0;
   state.seconds = 0;
   $("startTitle").textContent = start;
@@ -384,6 +422,7 @@ document.querySelectorAll(".difficulty-option").forEach(button => {
 
 $("startButton").addEventListener("click", beginRace);
 $("restartButton").addEventListener("click", () => newRoute().catch(error => setToast(error.message)));
+$("previousButton").addEventListener("click", goBackArticle);
 $("quitButton").addEventListener("click", leaveRace);
 $("playAgainButton").addEventListener("click", () => { showScreen("home"); beginRace(); });
 $("homeButton").addEventListener("click", () => { showScreen("home"); });
@@ -415,6 +454,7 @@ window.addEventListener("message", async event => {
     finishRace();
     return;
   }
+  recordArticleVisit(title);
   await loadArticle(title, true);
 });
 
