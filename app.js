@@ -670,6 +670,7 @@ async function addFriendByUsername(){
     const requestId=currentUser.uid+"_"+person.uid;
     const requestRef=db.collection("friendRequests").doc(requestId), old=await requestRef.get();
     if(old.exists && old.data().status==="pending")return friendMessage("You already sent a request to this person.");
+    if(old.exists)await requestRef.delete();
     await requestRef.set({fromUid:currentUser.uid,toUid:person.uid,fromUsername:currentUsername,toUsername:person.username,status:"pending",createdAt:firebase.firestore.FieldValue.serverTimestamp()});
     $("friendUsernameInput").value="";
     friendMessage("Friend request sent to "+person.username+".");
