@@ -187,3 +187,101 @@ html[data-theme="light"] .modal-backdrop{background:#18223566}
 #topSignOutButton.hidden{display:none!important}
 
 .google-auth-button{width:100%;margin-top:4px;padding:11px 14px;border:1px solid var(--line);border-radius:8px;background:var(--panel2);color:var(--text);font:600 13px 'DM Sans',sans-serif;cursor:pointer}.google-auth-button:hover{border-color:var(--accent)}.auth-divider{display:flex;align-items:center;gap:10px;margin:15px 0;color:var(--muted);font-size:11px}.auth-divider:before,.auth-divider:after{content:"";height:1px;flex:1;background:var(--line)}.auth-modal .auth-divider+label{margin-top:0}
+
+
+/* Wikipedia-inspired interface: restrained colors, flat surfaces, blue links. */
+:root{
+  color-scheme:light;
+  --bg:#f8f9fa;--panel:#fff;--panel2:#f8f9fa;--line:#a2a9b1;
+  --muted:#54595d;--text:#202122;--accent:#36c;--accent2:#36c;
+  --blue:#36c;--danger:#b32424;
+}
+html,body{background:#f8f9fa;color:#202122;font-family:Arial,Helvetica,sans-serif}
+button:focus-visible,a:focus-visible{outline:2px solid #36c;outline-offset:2px}
+.app-shell{padding:0 24px}
+.topbar{height:66px;border-bottom:1px solid #a2a9b1}
+.brand{gap:9px;color:#202122;font:400 22px Georgia,serif;letter-spacing:0}
+.brand-mark{width:34px;height:34px;border-radius:50%;border:1px solid #a2a9b1;background:#fff;color:#202122;font:700 21px Georgia,serif}
+.brand-light{color:#54595d;font-weight:400}
+.topbar-right{color:#54595d}
+.live-dot,.location-pulse{background:#72777d;box-shadow:none}
+.account-button,.icon-button,.theme-control select{border:1px solid #a2a9b1;border-radius:2px;background:#fff;color:#202122}
+.icon-button{margin-left:4px}
+main{width:100%}
+.hero{max-width:1050px;margin:42px auto 52px;text-align:left}
+.eyebrow{justify-content:flex-start;color:#54595d;letter-spacing:1px}
+.eyebrow-line{background:#a2a9b1}
+.hero h1{font:400 clamp(32px,4vw,44px)/1.2 Georgia,"Times New Roman",serif;letter-spacing:0;color:#202122;margin:16px 0}
+.gradient-text{background:none;color:#202122}
+.hero-copy{max-width:760px;margin:0;color:#54595d;font-size:14px;line-height:1.6}
+.setup-card,.account-panel{max-width:850px;margin:28px 0 0;padding:22px;background:#fff;border:1px solid #a2a9b1;border-radius:2px;box-shadow:none}
+.setup-heading{margin-bottom:20px}
+.section-kicker{color:#54595d;letter-spacing:1px}
+.setup-heading h2,.account-panel h3{font:400 22px Georgia,"Times New Roman",serif;color:#202122;letter-spacing:0}
+.random-tag{border:1px solid #a2a9b1;border-radius:2px;background:#f8f9fa;color:#54595d}
+.random-tag span{color:#72777d}
+.difficulty-label,.custom-route-heading{color:#54595d}
+.difficulty-option{border:1px solid #a2a9b1;border-radius:2px;background:#fff;color:#202122}
+.difficulty-option:hover{border-color:#36c;background:#f8f9fa}
+.difficulty-option.selected{border:2px solid #36c;background:#f8f9fa}
+.difficulty-option small{color:#54595d}
+.difficulty-icon,.easy-icon,.medium-icon,.hard-icon{color:#54595d}
+.option-check{color:#36c}
+.primary-button{border:1px solid #36c;border-radius:2px;background:#36c;color:#fff;font-weight:600}
+.primary-button:hover{filter:brightness(.94);transform:none}
+.setup-note,.custom-route-note{color:#54595d}
+.hero-foot{color:#54595d}
+.hero-foot i{background:#72777d}
+.custom-route-fields input,.auth-modal input,.theme-control select,.room-status input{border:1px solid #a2a9b1;border-radius:2px;background:#fff;color:#202122}
+.back-setting{color:#202122}
+.secondary-button,.toolbar-button,.back-button,.text-button{border:1px solid #a2a9b1;border-radius:2px;background:#fff;color:#36c}
+.secondary-button:hover,.toolbar-button:hover,.back-button:hover,.text-button:hover{background:#f8f9fa;color:#234}
+.route-card,.win-card,.help-modal,.auth-modal,.room-status{background:#fff;border:1px solid #a2a9b1;border-radius:2px;box-shadow:none;color:#202122}
+.route-point strong,.current-location strong,.win-card h1,.win-copy strong,.help-modal h2,.help-modal li strong{color:#202122}
+.route-label,.stat-label,.current-location,.win-copy,.win-stats span,.help-modal li span,.help-note{color:#54595d}
+.destination .route-label,.route-progress,.text-button:hover{color:#36c}
+.route-line{background:#a2a9b1}
+.win-icon{background:#eaecf0;color:#202122;border:1px solid #a2a9b1}
+.win-stats div{background:#f8f9fa;border:1px solid #a2a9b1;border-radius:2px}
+.help-modal li{color:#202122}
+.help-note{border-color:#a2a9b1}
+.modal-backdrop,.auth-modal-backdrop{background:#20212266;backdrop-filter:none}
+.modal-close{color:#54595d}
+.toast{background:#202122;border:1px solid #54595d;border-radius:2px;color:#fff}
+.google-auth-button{border:1px solid #a2a9b1;border-radius:2px;background:#fff;color:#202122}
+.google-auth-button:hover{border-color:#36c}
+.auth-error{color:#b32424}
+.wiki-frame{box-shadow:none}
+.game-footer{color:#54595d}
+.article-loading .loader{border-top-color:#36c}
+@media(max-width:650px){
+ .app-shell{padding:0 14px}
+ .hero{margin:28px auto 35px}
+ .setup-card,.account-panel{padding:17px}
+ .hero h1{letter-spacing:0}
+}
+html[data-theme="dark"]{
+ color-scheme:dark;
+ --bg:#202122;--panel:#27292b;--panel2:#202122;--line:#54595d;
+ --muted:#a2a9b1;--text:#eaecf0;--accent:#8ab4f8;--accent2:#8ab4f8;--blue:#8ab4f8;
+}
+html[data-theme="dark"],html[data-theme="dark"] body{background:#202122;color:#eaecf0}
+html[data-theme="dark"] .topbar{border-color:#54595d}
+html[data-theme="dark"] .brand,html[data-theme="dark"] .hero h1,html[data-theme="dark"] .setup-heading h2,html[data-theme="dark"] .account-panel h3,
+html[data-theme="dark"] .route-point strong,html[data-theme="dark"] .current-location strong,html[data-theme="dark"] .win-card h1,
+html[data-theme="dark"] .win-copy strong,html[data-theme="dark"] .help-modal h2,html[data-theme="dark"] .help-modal li strong{color:#eaecf0}
+html[data-theme="dark"] .brand-mark,html[data-theme="dark"] .account-button,html[data-theme="dark"] .icon-button,
+html[data-theme="dark"] .theme-control select,html[data-theme="dark"] .setup-card,html[data-theme="dark"] .account-panel,
+html[data-theme="dark"] .difficulty-option,html[data-theme="dark"] .route-card,html[data-theme="dark"] .win-card,
+html[data-theme="dark"] .help-modal,html[data-theme="dark"] .auth-modal,html[data-theme="dark"] .room-status,
+html[data-theme="dark"] .secondary-button,html[data-theme="dark"] .google-auth-button,
+html[data-theme="dark"] .custom-route-fields input,html[data-theme="dark"] .auth-modal input{background:#27292b;color:#eaecf0;border-color:#54595d}
+html[data-theme="dark"] .difficulty-option.selected{border:2px solid #8ab4f8;background:#30343a}
+html[data-theme="dark"] .primary-button{background:#8ab4f8;border-color:#8ab4f8;color:#202122}
+html[data-theme="dark"] .gradient-text{background:none;color:#eaecf0}
+html[data-theme="dark"] .random-tag,html[data-theme="dark"] .win-stats div{background:#202122;border-color:#54595d;color:#eaecf0}
+html[data-theme="dark"] .setup-note,html[data-theme="dark"] .custom-route-note,html[data-theme="dark"] .hero-copy,
+html[data-theme="dark"] .difficulty-option small,html[data-theme="dark"] .section-kicker,html[data-theme="dark"] .difficulty-label,
+html[data-theme="dark"] .custom-route-heading,html[data-theme="dark"] .topbar-right,html[data-theme="dark"] .muted{color:#a2a9b1}
+html[data-theme="dark"] .wiki-frame{background:#fff;color:#202122}
+html[data-theme="dark"] .modal-backdrop,html[data-theme="dark"] .auth-modal-backdrop{background:#0009}
