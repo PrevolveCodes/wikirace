@@ -1,5 +1,5 @@
 const API = "https://en.wikipedia.org/w/api.php";
-const REST = "https://en.wikipedia.org/api/rest_v1/page/html/";
+const REST = "https://en.wikipedia.org/w/rest.php/v1/page/";
 const $ = (id) => document.getElementById(id);
 
 const screens = {
@@ -198,7 +198,7 @@ async function loadArticle(title, countClick = false) {
   }
 
   try {
-    const url = REST + encodeURIComponent(title.replace(/ /g, "_"));
+    const url = REST + encodeURIComponent(title.replace(/ /g, "_")) + "/html";
     const response = await fetch(url, {
       signal: state.requestController.signal,
       headers: { "Accept": "text/html; charset=utf-8" }
@@ -209,6 +209,9 @@ async function loadArticle(title, countClick = false) {
     $("articleContent").replaceChildren(prepared);
     $("articleError").classList.add("hidden");
     $("currentTitle").textContent = title;
+    const sourceLink = $("sourceLink");
+    sourceLink.href = "https://en.wikipedia.org/wiki/" + encodeURIComponent(title.replace(/ /g, "_"));
+    sourceLink.textContent = "View original article ↗";
   } catch (error) {
     if (error.name === "AbortError") return;
     $("articleContent").innerHTML = '<div class="article-loading"><p>Could not load this article.</p></div>';
