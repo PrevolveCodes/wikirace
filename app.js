@@ -192,10 +192,17 @@ function cleanAndPrepareArticle(html, title) {
     img.loading = "lazy";
   });
 
+  // Recreate the outer article landmarks used by Vector so Wikipedia's
+  // own ResourceLoader CSS can style the title and article body correctly.
   const wrapper = document.createElement("div");
-  wrapper.appendChild(content);
-  const firstHeading = wrapper.querySelector("h1");
-  if (firstHeading) firstHeading.textContent = title;
+  wrapper.className = "mw-body";
+  const heading = document.createElement("h1");
+  heading.className = "firstHeading mw-first-heading";
+  heading.textContent = title;
+  const body = document.createElement("div");
+  body.className = "mw-body-content";
+  body.appendChild(content);
+  wrapper.append(heading, body);
   return wrapper;
 }
 
