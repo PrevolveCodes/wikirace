@@ -118,7 +118,7 @@ html[data-theme="light"] .random-tag{border-color:#cbdcbe;color:#477a25}
 html[data-theme="light"] .difficulty-option{background:#f8fafc;border-color:#d5dce6;color:#202938}
 html[data-theme="light"] .difficulty-option small,html[data-theme="light"] .setup-note,html[data-theme="light"] .hero-foot,html[data-theme="light"] .site-footer{color:#667085}
 html[data-theme="light"] .difficulty-option.selected{background:#4f8b2410;border-color:#4f8b24}
-html[data-theme="light"] .primary-button{background:#78b947;color:#142014}
+html[data-theme="light"] .primary-button{background:#8ab4f8;border-color:#8ab4f8;color:#202122}
 html[data-theme="light"] .route-card{background:#fff;border-color:#d5dce6}
 html[data-theme="light"] .current-location{color:#667085}
 html[data-theme="light"] .current-location strong{color:#202938}
