@@ -634,11 +634,12 @@ async function loadFriends(){
   requests.replaceChildren();friends.replaceChildren();
   try{
     const [incoming,connections]=await Promise.all([
-      db.collection("friendRequests").where("toUid","==",currentUser.uid).where("status","==","pending").get(),
+      db.collection("friendRequests").where("toUid","==",currentUser.uid).get(),
       db.collection("friendships").where("members","array-contains",currentUser.uid).get()
     ]);
-    if(incoming.empty){const p=document.createElement("p");p.className="friends-empty";p.textContent="No pending requests.";requests.appendChild(p);}
-    incoming.forEach(doc=>{
+    const pending=incoming.docs.filter(doc=>doc.data().status==="pending");
+    if(!pending.length){const p=document.createElement("p");p.className="friends-empty";p.textContent="No pending requests.";requests.appendChild(p);}
+    pending.forEach(doc=>{
       const req=doc.data();
       requests.appendChild(friendRow(req.fromUsername||"WikiRace player","Wants to be your friend",[
         {label:"Accept",kind:"friend-accept",run:()=>acceptFriendRequest(doc.id,req)},
