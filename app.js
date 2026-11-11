@@ -97,6 +97,44 @@ async function apiRandomTitles(count = 2) {
   return (data.query?.random || []).map(item => item.title);
 }
 
+
+async function resolveWikipediaTitle(input) {
+  const value = input.trim();
+  const url = new URL(API);
+  url.search = new URLSearchParams({
+    action: "query",
+    titles: value,
+    redirects: "1",
+    format: "json",
+    origin: "*"
+  });
+  const response = await fetch(url);
+  if (!response.ok) throw new Error("Wikipedia couldn't check the article names. Try again.");
+  const data = await response.json();
+  const page = Object.values(data.query?.pages || {})[0];
+  if (!page || page.missing !== undefined) {
+    throw new Error('Could not find "' + value + '" on Wikipedia. Check the spelling.');
+  }
+  return page.title;
+}
+
+async function chooseCustomRoute() {
+  const startInput = $("customStart").value.trim();
+  const goalInput = $("customGoal").value.trim();
+  if (!startInput && !goalInput) return null;
+  if (!startInput || !goalInput) {
+    throw new Error("Enter both a starting article and a destination, or leave both blank for a random route.");
+  }
+  const [start, goal] = await Promise.all([
+    resolveWikipediaTitle(startInput),
+    resolveWikipediaTitle(goalInput)
+  ]);
+  if (normaliseTitle(start) === normaliseTitle(goal)) {
+    throw new Error("Choose two different Wikipedia articles.");
+  }
+  return [start, goal];
+}
+
 async function chooseRoute() {
   if (state.difficulty === "easy") {
     const first = popularArticles[Math.floor(Math.random() * popularArticles.length)];
@@ -291,7 +329,8 @@ async function beginRace() {
     state.clicks = 0;
     state.seconds = 0;
     state.loading = false;
-    const [start, goal] = await chooseRoute();
+    const customRoute = await chooseCustomRoute();
+    const [start, goal] = customRoute || await chooseRoute();
     state.start = start;
     state.goal = goal;
     state.current = start;
