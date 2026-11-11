@@ -98,3 +98,12 @@ h1,h2,p{margin-top:0}
 .wiki-content .mw-body-content{font-family:inherit}
 .wiki-content img{max-width:100%;height:auto}
 @media(max-width:650px){.wiki-content{padding:18px 14px 35px}}
+
+
+/* Tighter vertical spacing: keep the main content closer to the header. */
+.hero{margin:clamp(24px,4vh,46px) auto 34px}
+.race-header{padding:12px 0 12px}
+.game-toolbar{padding:11px 2px}
+.wiki-content{padding-top:18px}
+.article-loading{min-height:320px}
+@media(max-width:650px){.hero{margin:28px auto 28px}.race-header{padding:9px 0}.wiki-content{padding-top:16px}.article-loading{min-height:260px}}
