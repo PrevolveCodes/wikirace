@@ -525,6 +525,7 @@ window.addEventListener("message", async event => {
 updateStats();
 
 let currentUser = null;
+let currentUsername = "";
 let activeRoom = null;
 let activeRoomCode = "";
 let roomUnsubscribe = null;
@@ -547,29 +548,43 @@ function authMode(mode) {
   $("authModal").classList.remove("hidden");
 }
 function renderAccount() {
-  $("accountButton").textContent = currentUser ? (currentUser.displayName || currentUser.email || "Account").split(" ")[0] : "Sign in";
+  $("accountButton").textContent = currentUser ? (currentUsername || currentUser.displayName || currentUser.email || "Account").split(" ")[0] : "Sign in";
   $("topSignOutButton").classList.toggle("hidden", !currentUser);
   $("accountStatus").textContent = currentUser ? (currentUser.displayName || currentUser.email) : "Not signed in";
   $("signedOutArea").classList.toggle("hidden", !!currentUser);
   $("signedInArea").classList.toggle("hidden", !currentUser);
 }
+function usernameKey(value){return String(value||"").trim().toLowerCase().replace(/[^a-z0-9_-]/g,"");}
 async function profileFor(user) {
   const ref = db.collection("users").doc(user.uid);
   const snap = await ref.get();
+  let profile = snap.data();
   if (!snap.exists) {
     const fallback = (user.displayName || (user.email || "Player").split("@")[0]).slice(0,20);
     const chosen = prompt("Choose a WikiRace username:", fallback);
-    await ref.set({username:(chosen || fallback).trim().slice(0,20) || fallback,email:user.email || "",createdAt:firebase.firestore.FieldValue.serverTimestamp(),races:0,wins:0});
+    profile = {username:(chosen || fallback).trim().slice(0,20) || fallback,email:user.email || "",createdAt:firebase.firestore.FieldValue.serverTimestamp(),races:0,wins:0};
+    await ref.set(profile);
+  }
+  currentUsername = profile.username || (user.displayName || (user.email || "Player").split("@")[0]).slice(0,20);
+  const key = usernameKey(currentUsername);
+  if(key) {
+    const indexRef=db.collection("usernames").doc(key), indexSnap=await indexRef.get();
+    if(indexSnap.exists && indexSnap.data().uid!==user.uid) {
+      setToast("That username is already in use. Change it in your account settings.");
+    } else {
+      await indexRef.set({uid:user.uid,username:currentUsername});
+    }
   }
 }
 auth.onAuthStateChanged(async user => {
   currentUser = user;
+  currentUsername = "";
   renderAccount();
   if (user) { try { await profileFor(user); } catch(e) { setToast(authError(e)); } }
   else { detachRoomListeners(); activeRoom=null; activeRoomCode=""; $("roomStatus").classList.add("hidden"); }
   renderAccount();
 });
-$("accountButton").addEventListener("click",()=>currentUser ? $("accountPanel").scrollIntoView({behavior:"smooth",block:"center"}) : authMode("signin"));
+$("accountButton").addEventListener("click",()=>currentUser ? openFriends() : authMode("signin"));
 $("googleSignIn").addEventListener("click",async()=>{try{await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());}catch(e){setToast(authError(e));}});
 $("modalGoogleSignIn").addEventListener("click",async()=>{try{await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());$("authModal").classList.add("hidden");}catch(e){$("authError").textContent=authError(e);}});
 $("emailSignIn").addEventListener("click",()=>authMode("signin"));
@@ -590,6 +605,96 @@ $("authForm").addEventListener("submit",async e=>{
 });
 $("logoutButton").addEventListener("click",async()=>{if(activeRoomCode)await leaveRoom();await auth.signOut();});
 $("topSignOutButton").addEventListener("click",async()=>{if(activeRoomCode)await leaveRoom();await auth.signOut();setToast("Signed out.");});
+
+$("friendsClose").addEventListener("click",()=>$("friendsModal").classList.add("hidden"));
+$("friendsModal").addEventListener("click",e=>{if(e.target===$("friendsModal"))$("friendsModal").classList.add("hidden");});
+$("addFriendButton").addEventListener("click",addFriendByUsername);
+$("friendUsernameInput").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();addFriendByUsername();}});
+function friendMessage(message,isError=false){$("friendsMessage").textContent=message;$("friendsMessage").classList.toggle("error",isError);}
+function openFriends(){
+  if(!currentUser)return authMode("signin");
+  $("friendsModal").classList.remove("hidden");
+  $("friendUsernameInput").value="";
+  friendMessage("");
+  loadFriends();
+}
+function friendRow(name,detail,actions=[]){
+  const row=document.createElement("div");row.className="friend-row";
+  const info=document.createElement("div");info.className="friend-info";
+  const strong=document.createElement("strong");strong.textContent=name;
+  const small=document.createElement("span");small.textContent=detail||"";
+  info.append(strong,small);row.appendChild(info);
+  const controls=document.createElement("div");controls.className="friend-actions";
+  actions.forEach(({label,run,kind})=>{const b=document.createElement("button");b.type="button";b.className="secondary-button"+(kind?" "+kind:"");b.textContent=label;b.addEventListener("click",run);controls.appendChild(b);});
+  row.appendChild(controls);return row;
+}
+async function loadFriends(){
+  if(!currentUser)return;
+  const requests=$("friendRequestsList"), friends=$("friendsList");
+  requests.replaceChildren();friends.replaceChildren();
+  try{
+    const [incoming,connections]=await Promise.all([
+      db.collection("friendRequests").where("toUid","==",currentUser.uid).where("status","==","pending").get(),
+      db.collection("friendships").where("members","array-contains",currentUser.uid).get()
+    ]);
+    if(incoming.empty){const p=document.createElement("p");p.className="friends-empty";p.textContent="No pending requests.";requests.appendChild(p);}
+    incoming.forEach(doc=>{
+      const req=doc.data();
+      requests.appendChild(friendRow(req.fromUsername||"WikiRace player","Wants to be your friend",[
+        {label:"Accept",kind:"friend-accept",run:()=>acceptFriendRequest(doc.id,req)},
+        {label:"Decline",run:()=>declineFriendRequest(doc.id)}
+      ]));
+    });
+    if(connections.empty){const p=document.createElement("p");p.className="friends-empty";p.textContent="No friends added yet.";friends.appendChild(p);}
+    connections.forEach(doc=>{
+      const data=doc.data(), otherUid=data.members.find(id=>id!==currentUser.uid);
+      const name=data.usernames?.[otherUid]||"WikiRace player";
+      friends.appendChild(friendRow(name,"Friend",[{label:"Invite",kind:"friend-invite",run:()=>inviteFriend(name)}]));
+    });
+  }catch(error){friendMessage(authError(error),true);}
+}
+async function addFriendByUsername(){
+  if(!currentUser)return;
+  const entered=$("friendUsernameInput").value.trim(), key=usernameKey(entered);
+  if(!key)return friendMessage("Enter a valid username.",true);
+  if(key===usernameKey(currentUsername))return friendMessage("You cannot add yourself.",true);
+  $("addFriendButton").disabled=true;
+  try{
+    const target=await db.collection("usernames").doc(key).get();
+    if(!target.exists)return friendMessage("No account was found with that username.",true);
+    const person=target.data();
+    if(person.uid===currentUser.uid)return friendMessage("You cannot add yourself.",true);
+    const existing=await db.collection("friendships").where("members","array-contains",currentUser.uid).get();
+    if(existing.docs.some(d=>d.data().members.includes(person.uid)))return friendMessage("You are already friends.");
+    const requestId=currentUser.uid+"_"+person.uid;
+    const requestRef=db.collection("friendRequests").doc(requestId), old=await requestRef.get();
+    if(old.exists && old.data().status==="pending")return friendMessage("You already sent a request to this person.");
+    await requestRef.set({fromUid:currentUser.uid,toUid:person.uid,fromUsername:currentUsername,toUsername:person.username,status:"pending",createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+    $("friendUsernameInput").value="";
+    friendMessage("Friend request sent to "+person.username+".");
+  }catch(error){friendMessage(authError(error),true);}
+  finally{$("addFriendButton").disabled=false;}
+}
+async function acceptFriendRequest(requestId,request){
+  try{
+    const members=[currentUser.uid,request.fromUid].sort();
+    const names={};names[currentUser.uid]=currentUsername;names[request.fromUid]=request.fromUsername||"WikiRace player";
+    await db.collection("friendships").doc(members.join("__")).set({members,usernames:names,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+    await db.collection("friendRequests").doc(requestId).update({status:"accepted",respondedAt:firebase.firestore.FieldValue.serverTimestamp()});
+    friendMessage("Friend added.");loadFriends();
+  }catch(error){friendMessage(authError(error),true);}
+}
+async function declineFriendRequest(requestId){
+  try{await db.collection("friendRequests").doc(requestId).update({status:"declined"});loadFriends();}
+  catch(error){friendMessage(authError(error),true);}
+}
+async function inviteFriend(friendName){
+  if(!activeRoomCode)return friendMessage("Create or join a game first, then you can invite "+friendName+".",true);
+  const invite="Join my WikiRace game! Enter code "+activeRoomCode+" on WikiRace.";
+  try{await navigator.clipboard.writeText(invite);friendMessage("Game invite copied for "+friendName+".");}
+  catch(error){friendMessage("Your game code is "+activeRoomCode+". Share it with "+friendName+".");}
+}
+
 
 function detachRoomListeners(){if(roomUnsubscribe)roomUnsubscribe();if(playersUnsubscribe)playersUnsubscribe();roomUnsubscribe=null;playersUnsubscribe=null;}
 function makeRoomCode(){const chars="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";let s="";for(let i=0;i<6;i++)s+=chars[Math.floor(Math.random()*chars.length)];return s;}
