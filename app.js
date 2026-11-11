@@ -340,6 +340,29 @@ updateBackButton();
   }
 }
 
+function launchConfetti() {
+  const layer = $("confettiLayer");
+  if (!layer || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  layer.replaceChildren();
+  const colors = ["#a5f36b", "#62c5ff", "#ffcf5a", "#ff7d9c", "#b69cff", "#ffffff"];
+  for (let i = 0; i < 90; i++) {
+    const piece = document.createElement("span");
+    piece.className = "confetti-piece";
+    piece.style.left = Math.random() * 100 + "%";
+    piece.style.setProperty("--confetti-color", colors[Math.floor(Math.random() * colors.length)]);
+    piece.style.setProperty("--confetti-drift", (Math.random() * 320 - 160) + "px");
+    piece.style.setProperty("--confetti-spin", (Math.random() * 1200 - 600) + "deg");
+    piece.style.setProperty("--confetti-duration", (2.5 + Math.random() * 2) + "s");
+    piece.style.setProperty("--confetti-delay", (Math.random() * 0.65) + "s");
+    piece.style.width = (6 + Math.random() * 6) + "px";
+    piece.style.height = (8 + Math.random() * 8) + "px";
+    if (Math.random() > 0.72) piece.style.borderRadius = "50%";
+    layer.appendChild(piece);
+  }
+  window.clearTimeout(launchConfetti.cleanup);
+  launchConfetti.cleanup = window.setTimeout(() => layer.replaceChildren(), 5200);
+}
+
 function finishRace() {
   stopTimer();
   state.loading = false;
@@ -351,6 +374,7 @@ function finishRace() {
   $("finalTime").textContent = formatTime(state.seconds);
   $("finalClicks").textContent = String(state.clicks);
   showScreen("win");
+  launchConfetti();
 }
 
 async function beginRace() {
