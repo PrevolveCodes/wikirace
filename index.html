@@ -42,6 +42,12 @@
               <button class="difficulty-option" data-difficulty="medium"><span class="difficulty-icon medium-icon">◆</span><span><strong>Medium</strong><small>Anything goes</small></span><span class="option-check">✓</span></button>
               <button class="difficulty-option" data-difficulty="hard"><span class="difficulty-icon hard-icon">✦</span><span><strong>Hard</strong><small>Obscure topics</small></span><span class="option-check">✓</span></button>
             </div>
+            <div class="custom-route-fields">
+              <div class="custom-route-heading">OR CHOOSE YOUR OWN ARTICLES</div>
+              <label>Starting article<input id="customStart" type="text" placeholder="e.g. Minecraft" autocomplete="off" maxlength="120"></label>
+              <label>Destination article<input id="customGoal" type="text" placeholder="e.g. World War II" autocomplete="off" maxlength="120"></label>
+              <p class="custom-route-note">Leave both blank to get a random route.</p>
+            </div>
             <button class="primary-button" id="startButton"><span>Start a race</span><span class="button-arrow">→</span></button>
             <p class="setup-note">No account needed. Just you and the entire encyclopedia.</p>
           </div>
@@ -97,7 +103,7 @@
       <button class="modal-close" id="closeHelp" aria-label="Close">×</button>
       <span class="section-kicker">THE RULES ARE SIMPLE</span>
       <h2 id="helpTitle">How to play</h2>
-      <ol><li><strong>Start at the first article.</strong><span>Your starting and destination pages are picked for you.</span></li><li><strong>Click links to travel.</strong><span>Only links inside the article count. Search and browser navigation won't help.</span></li><li><strong>Reach the destination.</strong><span>Get there with the lowest time and fewest clicks you can.</span></li></ol>
+      <ol><li><strong>Start at the first article.</strong><span>Choose your own two articles or let WikiRace pick them.</span></li><li><strong>Click links to travel.</strong><span>Only links inside the article count. Search and browser navigation won't help.</span></li><li><strong>Reach the destination.</strong><span>Get there with the lowest time and fewest clicks you can.</span></li></ol>
       <p class="help-note">Wikipedia text is generally licensed under CC BY-SA 4.0; images and other media may have different licenses. Open the original article for its attribution details.</p>
     </div>
   </div>
