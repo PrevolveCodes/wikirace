@@ -61,11 +61,11 @@ h1,h2,p{margin-top:0}
 .game-toolbar{display:flex;align-items:center;justify-content:space-between;padding:17px 2px}
 .current-location{display:flex;align-items:center;gap:9px;color:#7e8ba1;font:9px 'DM Mono',monospace;letter-spacing:.8px;min-width:0}.current-location strong{color:#e7edf7;font:600 12px 'DM Sans',sans-serif;letter-spacing:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .toolbar-button{font-size:11px}.toolbar-button:first-letter{font-size:16px}
-.wiki-frame{position:relative;overflow:hidden;background:#f8f9fa;border-radius:12px;box-shadow:0 20px 65px #0004;color:#202122;min-height:600px}
+.wiki-frame{position:relative;overflow:visible;background:#f8f9fa;border-radius:12px;box-shadow:0 20px 65px #0004;color:#202122;min-height:calc(100vh - 190px)}
 .wiki-topline{height:34px;padding:0 14px;display:flex;align-items:center;gap:9px;background:#eaecf0;border-bottom:1px solid #c8ccd1;color:#72777d;font:9px 'DM Mono',monospace;letter-spacing:1px}
 .wiki-dots{display:flex;gap:4px;margin-right:6px}.wiki-dots i{width:6px;height:6px;border-radius:50%;background:#a2a9b1}
 .wiki-secure{margin-left:auto;color:#43845a;font-size:8px}
-.wiki-content{max-width:100%;padding:35px clamp(20px,6vw,75px) 60px;min-height:565px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.65;overflow-wrap:anywhere}
+.wiki-content{max-width:100%;padding:35px clamp(20px,6vw,75px) 60px;min-height:calc(100vh - 190px);font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.65;overflow-wrap:anywhere}
 .wiki-content h1,.wiki-content h2,.wiki-content h3,.wiki-content h4{font-family:Georgia,serif;color:#202122;letter-spacing:0;border-bottom:1px solid #a2a9b1;padding-bottom:5px;margin:1.25em 0 .45em;line-height:1.3}
 .wiki-content h1{font-size:30px;font-weight:400;margin-top:0}.wiki-content h2{font-size:22px;font-weight:400}.wiki-content h3{font-size:18px;font-weight:600;border:0}
 .wiki-content p{margin:.5em 0 1em}.wiki-content a{color:#36c;text-decoration:none;cursor:pointer}.wiki-content a:hover{text-decoration:underline}.wiki-content a.new{color:#ba0000}
@@ -92,7 +92,7 @@ h1,h2,p{margin-top:0}
 /* The article itself uses Wikipedia's live Vector ResourceLoader stylesheets.
    These rules only define the game viewport around that original markup. */
 .wiki-topline{display:none}
-.wiki-frame{background:#fff;border:1px solid #c8ccd1;border-radius:3px;overflow:visible;min-height:600px;color:#202122;box-shadow:0 12px 40px #0003}
+.wiki-frame{background:#fff;border:1px solid #c8ccd1;border-radius:3px;overflow:visible;min-height:calc(100vh - 190px);color:#202122;box-shadow:0 12px 40px #0003}
 .wiki-content{width:100%;max-width:none;min-height:600px;padding:0;background:#fff;color:#202122;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;overflow-wrap:normal}
 .wiki-content .mw-body{max-width:100%;margin:0 auto}
 .wiki-content .mw-body-content{font-family:inherit}
