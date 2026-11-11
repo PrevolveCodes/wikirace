@@ -183,3 +183,5 @@ html[data-theme="light"] .modal-backdrop{background:#18223566}
 @media(max-width:650px){.account-panel{padding:16px}.auth-actions{display:grid;grid-template-columns:1fr}.account-button{padding:7px 9px;font-size:10px}}
 
 .auth-modal-backdrop.hidden,.room-status.hidden{display:none!important}
+
+#topSignOutButton.hidden{display:none!important}
