@@ -3,10 +3,10 @@
 :root{color-scheme:dark;--bg:#0b1020;--panel:#121a2d;--panel2:#172239;--line:#26334b;--muted:#8491a8;--text:#f3f6fc;--accent:#a5f36b;--accent2:#72d9ad;--blue:#8ba8ff;--danger:#ff8585}
 *{box-sizing:border-box}
 html{min-height:100%;background:var(--bg)}
-body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 50% -15%,#1b2c46 0,transparent 48%),var(--bg);color:var(--text);font-family:'DM Sans',sans-serif}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif}
 button{font:inherit}
 button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
-.app-shell{max-width:1440px;min-height:100vh;margin:auto;padding:0 5.2%;display:flex;flex-direction:column}
+.app-shell{width:100%;max-width:none;min-height:100vh;margin:0;padding:0 2.5%;display:flex;flex-direction:column}
 .topbar{height:82px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(132,145,168,.15)}
 .brand{display:flex;align-items:center;gap:11px;color:var(--text);font:700 22px 'Space Grotesk',sans-serif;text-decoration:none;letter-spacing:-1px}
 .brand-mark{width:31px;height:31px;display:grid;place-items:center;border-radius:9px;background:var(--accent);color:#101a12;font-size:20px;font-weight:700}
@@ -93,7 +93,7 @@ h1,h2,p{margin-top:0}
    These rules only define the game viewport around that original markup. */
 .wiki-topline{display:none}
 .wiki-frame{background:#fff;border:1px solid #c8ccd1;border-radius:3px;overflow:visible;min-height:600px;color:#202122;box-shadow:0 12px 40px #0003}
-.wiki-content{max-width:none;min-height:600px;padding:24px clamp(18px,4vw,48px) 48px;background:#fff;color:#202122;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;overflow-wrap:normal}
+.wiki-content{width:100%;max-width:none;min-height:600px;padding:0;background:#fff;color:#202122;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;overflow-wrap:normal}
 .wiki-content .mw-body{max-width:100%;margin:0 auto}
 .wiki-content .mw-body-content{font-family:inherit}
 .wiki-content img{max-width:100%;height:auto}
@@ -133,3 +133,8 @@ html[data-theme="light"] .modal-close{color:#586579}
 html[data-theme="light"] .toast{background:#fff;border-color:#d5dce6;color:#202938}
 html[data-theme="light"] .modal-backdrop{background:#18223566}
 @media(max-width:650px){.theme-control select{padding:6px 22px 6px 7px;font-size:10px}.topbar-right{gap:7px}}
+
+
+/* Keep Wikipedia's page styles inside its own frame. */
+.wiki-article-frame{display:block;width:100%;min-height:700px;height:calc(100vh - 330px);border:0;background:#fff}
+@media(max-width:650px){.app-shell{padding:0 12px}.wiki-article-frame{height:calc(100vh - 300px);min-height:600px}}
