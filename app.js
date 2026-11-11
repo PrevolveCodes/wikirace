@@ -251,7 +251,7 @@ async function loadArticle(title, countClick = false) {
     frame.setAttribute("sandbox", "allow-scripts allow-popups");
     const stylesheetLinks = prepared.stylesheets.map(href => '<link rel="stylesheet" href="' + href.replace(/&/g, "&amp;").replace(/"/g, "&quot;") + '">').join("");
     const articleMarkup = prepared.wrapper.outerHTML;
-    frame.srcdoc = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' + stylesheetLinks + '<style>html,body{margin:0;padding:0;background:#fff;color:#202122;font-family:Arial,Helvetica,sans-serif}body{padding:24px clamp(18px,4vw,48px) 48px;box-sizing:border-box}.mw-body{max-width:none!important;margin:0 auto!important}.mw-body-content{font-family:Arial,Helvetica,sans-serif}img{max-width:100%;height:auto}</style></head><body>' + articleMarkup + '<script>document.addEventListener("click",function(e){const a=e.target.closest("a[data-wiki-title]");if(a){e.preventDefault();parent.postMessage({type:"wikirace-navigation",title:a.dataset.wikiTitle},"*");}});</script></body></html>';
+    frame.srcdoc = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' + stylesheetLinks + '<style>html,body{margin:0;padding:0;background:#fff;color:#202122;font-family:Arial,Helvetica,sans-serif}body{padding:24px clamp(18px,4vw,48px) 48px;box-sizing:border-box}.mw-body{max-width:none!important;margin:0 auto!important}.mw-body-content{font-family:Arial,Helvetica,sans-serif}img{max-width:100%;height:auto}</style></head><body>' + articleMarkup + '<script>function reportHeight(){parent.postMessage({type:"wikirace-height",height:Math.ceil(document.documentElement.scrollHeight)},"*")}const heightObserver=new ResizeObserver(reportHeight);heightObserver.observe(document.documentElement);window.addEventListener("load",reportHeight);document.addEventListener("click",function(e){const a=e.target.closest("a[data-wiki-title]");if(a){e.preventDefault();parent.postMessage({type:"wikirace-navigation",title:a.dataset.wikiTitle},"*");}});reportHeight();</script></body></html>';
     $("articleContent").replaceChildren(frame);
     $("articleError").classList.add("hidden");
     $("currentTitle").textContent = title;
@@ -360,6 +360,12 @@ document.addEventListener("keydown", event => {
 
 window.addEventListener("message", async event => {
   if (event.source !== $("articleContent").querySelector("iframe")?.contentWindow) return;
+  if (event.data?.type === "wikirace-height") {
+    const frame = $("articleContent").querySelector("iframe");
+    const height = Number(event.data.height);
+    if (frame && Number.isFinite(height)) frame.style.height = Math.max(500, height) + "px";
+    return;
+  }
   if (event.data?.type !== "wikirace-navigation") return;
   const title = String(event.data.title || "");
   if (!title || state.loading) return;
