@@ -105,19 +105,19 @@ h1,h2,p{margin-top:0}
 .theme-control{position:relative}
 .theme-control:after{content:"▾";position:absolute;right:9px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none;font-size:10px}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-html[data-theme="light"]{color-scheme:light;--bg:#f3f5f8;--panel:#fff;--panel2:#edf1f6;--line:#d5dce6;--muted:#667085;--text:#202938;--accent:#4f8b24;--accent2:#328b68;--blue:#466bc5;--danger:#bd4545}
+html[data-theme="light"]{color-scheme:light;--bg:#f3f5f8;--panel:#fff;--panel2:#edf1f6;--line:#d5dce6;--muted:#667085;--text:#202938;--accent:#8ab4f8;--accent2:#8ab4f8;--blue:#8ab4f8;--danger:#bd4545}
 html[data-theme="light"] body{background:var(--bg);color:var(--text)}
 html[data-theme="light"] .topbar,html[data-theme="light"] .site-footer{border-color:#dce1e8}
 html[data-theme="light"] .brand-light{color:#586579}
 html[data-theme="light"] .icon-button{color:#475467}
-html[data-theme="light"] .eyebrow{color:#4f8b24}
-html[data-theme="light"] .eyebrow-line{background:#4f8b2466}
+html[data-theme="light"] .eyebrow{color:#8ab4f8}
+html[data-theme="light"] .eyebrow-line{background:#8ab4f866}
 html[data-theme="light"] .hero-copy,html[data-theme="light"] .win-copy{color:#586579}
 html[data-theme="light"] .setup-card,html[data-theme="light"] .win-card{background:#fff;border-color:#d5dce6;box-shadow:0 15px 45px #25324a12}
-html[data-theme="light"] .random-tag{border-color:#cbdcbe;color:#477a25}
+html[data-theme="light"] .random-tag{border-color:#8ab4f8;color:#466b9f}
 html[data-theme="light"] .difficulty-option{background:#f8fafc;border-color:#d5dce6;color:#202938}
 html[data-theme="light"] .difficulty-option small,html[data-theme="light"] .setup-note,html[data-theme="light"] .hero-foot,html[data-theme="light"] .site-footer{color:#667085}
-html[data-theme="light"] .difficulty-option.selected{background:#4f8b2410;border-color:#4f8b24}
+html[data-theme="light"] .difficulty-option.selected{background:#8ab4f820;border-color:#8ab4f8}
 html[data-theme="light"] .primary-button{background:#8ab4f8;border-color:#8ab4f8;color:#202122}
 html[data-theme="light"] .route-card{background:#fff;border-color:#d5dce6}
 html[data-theme="light"] .current-location{color:#667085}
