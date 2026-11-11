@@ -541,6 +541,8 @@ function authMode(mode) {
   $("authTitle").textContent = mode === "signup" ? "Create account" : "Sign in";
   $("authSubmit").textContent = mode === "signup" ? "Create account" : "Sign in";
   $("authModal").dataset.mode = mode;
+  $("authSwitchText").firstChild.textContent = mode === "signup" ? "Already have an account? " : "Don't have an account? ";
+  $("authSwitchButton").textContent = mode === "signup" ? "Sign in" : "Sign up";
   $("authError").textContent = "";
   $("authModal").classList.remove("hidden");
 }
@@ -571,6 +573,7 @@ $("accountButton").addEventListener("click",()=>currentUser ? $("accountPanel").
 $("googleSignIn").addEventListener("click",async()=>{try{await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());}catch(e){setToast(authError(e));}});
 $("emailSignIn").addEventListener("click",()=>authMode("signin"));
 $("emailSignUp").addEventListener("click",()=>authMode("signup"));
+$("authSwitchButton").addEventListener("click",()=>authMode($("authModal").dataset.mode === "signup" ? "signin" : "signup"));
 $("authClose").addEventListener("click",()=>$("authModal").classList.add("hidden"));
 $("authModal").addEventListener("click",e=>{if(e.target===$("authModal"))$("authModal").classList.add("hidden");});
 $("authForm").addEventListener("submit",async e=>{
