@@ -149,3 +149,9 @@ html[data-theme="light"] .modal-backdrop{background:#18223566}
 .custom-route-fields input::placeholder{color:var(--muted)}
 .custom-route-note{grid-column:1/-1;margin:0;color:var(--muted);font-size:11px}
 @media(max-width:650px){.custom-route-fields{grid-template-columns:1fr;gap:10px}.custom-route-heading,.custom-route-note{grid-column:1}}
+
+
+.toolbar-actions{display:flex;align-items:center;gap:8px}
+.back-setting{grid-column:1/-1;display:flex!important;flex-direction:row!important;align-items:center;gap:8px!important;font-weight:500!important;color:var(--muted)!important}
+.back-setting input{width:15px;height:15px;accent-color:var(--accent)}
+.toolbar-button:disabled{opacity:.35;cursor:not-allowed}
