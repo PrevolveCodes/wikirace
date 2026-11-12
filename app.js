@@ -812,8 +812,19 @@ window.addEventListener("message", async event => {
     return;
   }
   if (event.data?.type !== "wikirace-navigation") return;
-  const title = String(event.data.title || "");
-  if (!title || state.loading) return;
+  const requestedTitle = String(event.data.title || "");
+  if (!requestedTitle || state.loading) return;
+
+  // Resolve redirects before comparing the clicked article with the destination.
+  // For example, "Sharks" may redirect to the "Shark" destination page.
+  let title;
+  try {
+    title = await resolveWikipediaTitle(requestedTitle);
+  } catch (error) {
+    setToast(error.message || "Could not open that Wikipedia article.");
+    return;
+  }
+  if (state.loading) return;
   if (normaliseTitle(title) === normaliseTitle(state.goal)) {
     state.clicks += 1;
     state.current = title;
