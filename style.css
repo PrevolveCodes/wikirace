@@ -242,3 +242,14 @@ html[data-theme="dark"] .donation-button:hover{background:#a4c7fa}
  .donation-copy{flex-basis:100%}
  .donation-button{padding:9px 11px}
 }
+
+
+/* Incoming multiplayer game invitations */
+.game-invite-notifications{position:fixed;left:20px;bottom:20px;z-index:60;display:flex;flex-direction:column;gap:10px;width:min(340px,calc(100% - 40px));pointer-events:none}
+.game-invite-notification{padding:14px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--text);box-shadow:0 5px 22px #20212230;pointer-events:auto}
+.game-invite-notification p{margin:0 0 11px;font-size:13px;line-height:1.45}
+.game-invite-actions{display:flex;align-items:center;gap:12px}
+.game-invite-actions .secondary-button{padding:7px 11px;color:var(--blue)}
+.game-invite-actions .text-button{margin:0;padding:6px 8px}
+html[data-theme="dark"] .game-invite-notification{background:var(--surface);border-color:var(--line);color:var(--text);box-shadow:0 5px 22px #0006}
+@media(max-width:560px){.game-invite-notifications{left:12px;bottom:12px;width:calc(100% - 24px)}}
