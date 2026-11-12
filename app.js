@@ -743,8 +743,8 @@ function closeOpponentFinishedPrompt(){
   $("opponentFinishedModal").classList.add("hidden");
 }
 function showOpponentFinishedPrompt(opponent){
-  if(!opponent||multiplayerLocalFinished||multiplayerEnded||opponentFinishPromptedFor===opponent.uid)return;
-  opponentFinishPromptedFor=opponent.uid;
+  if(!opponent||multiplayerLocalFinished||multiplayerEnded||opponentFinishPromptedFor.has(opponent.uid))return;
+  opponentFinishPromptedFor.add(opponent.uid);
   $("opponentFinishedMessage").textContent=(opponent.username||"Your opponent")+" reached the destination. Do you want to keep racing?";
   $("opponentFinishedModal").classList.remove("hidden");
 }
@@ -809,16 +809,18 @@ async function requestRoomRematch(){
   catch(error){setToast(authError(error));}
 }
 async function maybeStartRoomRematch(players){
-  if(!activeRoom||activeRoom.hostUid!==currentUser?.uid||activeRoom.status!=="racing"||players.length<2||!players.every(p=>p.rematch===true))return;
+  if(rematchStarting||!activeRoom||activeRoom.hostUid!==currentUser?.uid||activeRoom.status!=="racing"||players.length<2||!players.every(p=>p.rematch===true))return;
+  rematchStarting=true;
   try{await activeRoomRef().update({status:"waiting",startedAt:null,start:"",goal:"",rematchAt:firebase.firestore.FieldValue.serverTimestamp()});}
   catch(error){setToast(authError(error));}
+  finally{rematchStarting=false;}
 }
 async function resetPlayerForRematch(){
   if(rematchResetInProgress||!activeRoom||!currentUser)return;
   rematchResetInProgress=true;
   try{
     await activeRoomRef().collection("players").doc(currentUser.uid).update({ready:false,finished:false,ended:false,rematch:false,clicks:0,seconds:0,current:"",finishedAt:firebase.firestore.FieldValue.delete(),endedAt:firebase.firestore.FieldValue.delete()});
-    multiplayerLocalFinished=false;multiplayerEnded=false;opponentFinishPromptedFor="";lastRoomProgressSecond=-1;
+    multiplayerLocalFinished=false;multiplayerEnded=false;opponentFinishPromptedFor=new Set();opponentDisconnectNotified=false;lastRoomProgressSecond=-1;
     $("multiplayerResults").classList.add("hidden");
     $("winScreen").querySelector(".eyebrow").textContent="RACE COMPLETE";
     $("winScreen").querySelector(".win-card h1").textContent="You did it!";
@@ -1014,7 +1016,9 @@ let friendPresenceRefreshTimer = null;
 let roomLaunchKey = "";
 let multiplayerLocalFinished = false;
 let multiplayerEnded = false;
-let opponentFinishPromptedFor = "";
+let opponentFinishPromptedFor = new Set();
+let opponentDisconnectNotified = false;
+let rematchStarting = false;
 let lastRoomProgressSecond = -1;
 let roomPresenceUnsubs = new Map();
 let roomPresenceStates = new Map();
@@ -1371,7 +1375,7 @@ async function listenRoom(id,code){
     if(activeRoom.status==="racing"){
       const key=activeRoom.id+":"+(activeRoom.startedAt?.toMillis?.()||"started");
       if(roomLaunchKey!==key){
-        roomLaunchKey=key;multiplayerLocalFinished=false;multiplayerEnded=false;opponentFinishPromptedFor="";lastRoomProgressSecond=-1;
+        roomLaunchKey=key;multiplayerLocalFinished=false;multiplayerEnded=false;opponentFinishPromptedFor=new Set();opponentDisconnectNotified=false;lastRoomProgressSecond=-1;
         await launchSharedRace(activeRoom);
       }
     } else {
@@ -1400,20 +1404,32 @@ function syncRoomPresence(players){
     const unsubscribe=db.collection("presence").doc(uid).onSnapshot(snapshot=>{
       const data=snapshot.data();
       const lastSeen=data?.lastSeen?.toMillis?.()||0;
-      roomPresenceStates.set(uid,!!data?.online&&(!lastSeen||Date.now()-lastSeen<120000));
+      const online=!!data?.online&&(!lastSeen||Date.now()-lastSeen<120000);
+      roomPresenceStates.set(uid,online);
+      if(!online&&activeRoom?.status==="racing"&&!multiplayerLocalFinished&&!multiplayerEnded&&!opponentDisconnectNotified){
+        opponentDisconnectNotified=true;
+        setToast("Your opponent disconnected.");
+      }
       if(screens.win.classList.contains("active"))renderMultiplayerResults();
     },()=>{roomPresenceStates.set(uid,false);if(screens.win.classList.contains("active"))renderMultiplayerResults();});
     roomPresenceUnsubs.set(uid,unsubscribe);
   });
 }
 function handleRoomPlayersUpdate(){
-  const players=window.roomPlayers||[];
-  const opponent=players.find(p=>p.uid!==currentUser?.uid);
-  if(!opponent)return;
-  if(opponent.finished&&!multiplayerLocalFinished&&!multiplayerEnded)showOpponentFinishedPrompt(opponent);
-  if(opponent.ended&&!multiplayerLocalFinished&&!multiplayerEnded){
+  const opponents=(window.roomPlayers||[]).filter(p=>p.uid!==currentUser?.uid);
+  if(!opponents.length){
+    if(!opponentDisconnectNotified&&!multiplayerLocalFinished&&!multiplayerEnded){
+      opponentDisconnectNotified=true;
+      setToast("Your opponent left the game.");
+    }
+    return;
+  }
+  const finisher=opponents.find(p=>p.finished&&!opponentFinishPromptedFor.has(p.uid));
+  if(finisher&&!multiplayerLocalFinished&&!multiplayerEnded)showOpponentFinishedPrompt(finisher);
+  const ended=opponents.find(p=>p.ended);
+  if(ended&&!multiplayerLocalFinished&&!multiplayerEnded){
     multiplayerEnded=true;
-    showMultiplayerEndedResults((opponent.username||"Your opponent")+" ended the race.");
+    showMultiplayerEndedResults((ended.username||"Your opponent")+" ended the race.");
     updateRoomPlayer(false,{ended:true,endedAt:firebase.firestore.FieldValue.serverTimestamp()});
   }
   if(screens.win.classList.contains("active"))renderMultiplayerResults();
@@ -1501,7 +1517,7 @@ $("chatClose").addEventListener("click",()=>setRoomChatOpen(false));
 async function launchSharedRace(room){
   stopTimer();if(state.requestController)state.requestController.abort();
   state.mode="multiplayer";state.dailyDate=null;
-  multiplayerLocalFinished=false;multiplayerEnded=false;opponentFinishPromptedFor="";lastRoomProgressSecond=-1;closeOpponentFinishedPrompt();
+  multiplayerLocalFinished=false;multiplayerEnded=false;opponentFinishPromptedFor=new Set();opponentDisconnectNotified=false;lastRoomProgressSecond=-1;closeOpponentFinishedPrompt();
   state.clicks=0;state.seconds=0;state.loading=false;state.difficulty=room.difficulty||"medium";
   state.start=room.start;state.goal=room.goal;state.current=room.start;state.history=[];state.historyIndex=-1;
    Object.assign(raceOptions, room.options || {});
