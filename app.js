@@ -670,11 +670,22 @@ async function addFriendByUsername(){
     if(person.uid===currentUser.uid)return friendMessage("You cannot add yourself.",true);
     const existing=await db.collection("friendships").where("members","array-contains",currentUser.uid).get();
     if(existing.docs.some(d=>d.data().members.includes(person.uid)))return friendMessage("You are already friends.");
+    const requests=await db.collection("friendRequests")
+      .where("fromUid","==",currentUser.uid)
+      .where("toUid","==",person.uid)
+      .get();
+    const previous=requests.docs[0];
+    if(previous && previous.data().status==="pending")return friendMessage("You already sent a request to this person.");
+    if(previous)await previous.ref.delete();
     const requestId=currentUser.uid+"_"+person.uid;
-    const requestRef=db.collection("friendRequests").doc(requestId), old=await requestRef.get();
-    if(old.exists && old.data().status==="pending")return friendMessage("You already sent a request to this person.");
-    if(old.exists)await requestRef.delete();
-    await requestRef.set({fromUid:currentUser.uid,toUid:person.uid,fromUsername:currentUsername,toUsername:person.username,status:"pending",createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+    await db.collection("friendRequests").doc(requestId).set({
+      fromUid:currentUser.uid,
+      toUid:person.uid,
+      fromUsername:currentUsername,
+      toUsername:person.username,
+      status:"pending",
+      createdAt:firebase.firestore.FieldValue.serverTimestamp()
+    });
     $("friendUsernameInput").value="";
     friendMessage("Friend request sent to "+person.username+".");
   }catch(error){friendMessage(authError(error),true);}
