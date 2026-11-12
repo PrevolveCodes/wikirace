@@ -329,3 +329,20 @@ html[data-theme="dark"] .daily-route,html[data-theme="dark"] .leaderboard-list l
 
 
 .multiplayer-settings-note{margin:6px 0 14px;color:var(--muted);font-size:12px;line-height:1.5}
+
+
+.multiplayer-chat{margin:18px 0;padding:16px;border:1px solid var(--line);border-radius:3px;background:var(--surface);color:var(--text)}
+.chat-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.chat-heading h3{margin:3px 0 0;font-size:18px;font-weight:600}
+#chatRoomLabel{color:var(--muted);font-size:11px;letter-spacing:1px}
+.chat-messages{height:190px;overflow-y:auto;display:flex;flex-direction:column;gap:9px;padding:10px;border:1px solid var(--line);background:var(--surface-soft);border-radius:3px}
+.chat-empty{margin:auto;color:var(--muted);font-size:12px}
+.chat-message{max-width:85%;align-self:flex-start;padding:7px 10px;border:1px solid var(--line);border-radius:4px;background:var(--surface);overflow-wrap:anywhere}
+.chat-message.own{align-self:flex-end}
+.chat-message-meta{display:flex;gap:10px;align-items:center;font-size:11px;color:var(--muted)}
+.chat-message-meta strong{color:var(--text)}
+.chat-message-meta span{font-size:10px}
+.chat-message p{margin:3px 0 0;font-size:13px;line-height:1.4;white-space:pre-wrap}
+.chat-compose{display:flex;gap:8px;margin-top:9px}
+.chat-compose input{flex:1;min-width:0;padding:10px 12px;border:1px solid var(--line);border-radius:3px;background:var(--surface);color:var(--text);font:inherit}
+.chat-compose button{flex-shrink:0}
