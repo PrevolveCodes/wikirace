@@ -37,60 +37,33 @@
           <div class="eyebrow"><span class="eyebrow-line"></span> THE INTERNET'S BIGGEST CONNECT-THE-DOTS <span class="eyebrow-line"></span></div>
           <h1>One start.<br><span class="gradient-text">One destination.</span><br>How fast can you get there?</h1>
           <p class="hero-copy">Jump through real Wikipedia articles. Follow the links, find the connection, and reach your destination in as few clicks as possible.</p>
-          <div class="game-mode-switch" role="tablist" aria-label="Choose game mode">
-            <button type="button" class="game-mode-tab selected" data-game-mode="solo" role="tab" aria-selected="true">Solo</button>
-            <button type="button" class="game-mode-tab" data-game-mode="friends" role="tab" aria-selected="false">With friends</button>
-          </div>
-          <div class="mode-panel" id="soloModePanel">
-            <div class="setup-card quick-start-card">
-              <span class="section-kicker">SOLO RACE</span>
-              <h2>Start a race</h2>
-              <p>Get a starting article and a destination. Reach the destination using Wikipedia links.</p>
-              <button class="primary-button" id="startButton"><span>Start solo race</span><span class="button-arrow">→</span></button>
-              <p class="setup-note">No account needed.</p>
+          <div class="setup-card">
+            <div class="setup-heading">
+              <div><span class="section-kicker">YOUR NEXT CHALLENGE</span><h2>Set up your race</h2></div>
+              <span class="random-tag"><span>✳</span> RANDOM ROUTE</span>
             </div>
-          </div>
-          <div class="mode-panel hidden" id="friendsModePanel">
-            <section class="account-panel" id="accountPanel">
-              <div class="account-panel-head"><div><span class="section-kicker">MULTIPLAYER</span><h3>Play with friends</h3></div><span class="account-status" id="accountStatus">Not signed in</span></div>
-              <div id="signedOutArea">
-                <p>Sign in first. Then create a game and share its code, or enter a friend's code to join.</p>
-                <div class="auth-actions"><button class="secondary-button" id="googleSignIn">Continue with Google</button><button class="secondary-button" id="emailSignIn">Email sign in</button><button class="secondary-button" id="emailSignUp">Create account</button></div>
-              </div>
-              <div id="signedInArea" class="hidden">
-                <div class="room-actions">
-                  <button class="secondary-button" id="createRoomButton">Create a game</button>
-                  <div class="join-code-row"><input id="joinCodeInput" maxlength="6" placeholder="6-character game code" aria-label="Game code"><button class="secondary-button" id="joinRoomButton">Join game</button></div>
-                </div>
-                <div id="roomStatus" class="room-status hidden"></div>
-                <div class="profile-progress frame-none" id="profileProgress"><div class="profile-progress-top"><div><span class="section-kicker">YOUR PROGRESS</span><strong>Daily streak</strong></div><span class="profile-frame-label" id="profileFrameLabel">None frame</span></div><div class="profile-stat-grid"><div><span>Current streak</span><strong id="currentStreak">0 days</strong></div><div><span>Longest streak</span><strong id="longestStreak">0 days</strong></div><div><span>Streak freezes</span><strong id="streakFreezes">0</strong></div></div><div class="profile-badges" id="profileBadges"><span class="profile-empty">Complete Daily Runs to earn badges.</span></div><p class="profile-freeze-note">Badges unlock at 3, 7, 14, 30, 60, 100, and 365 days. Frames unlock at 30, 60, 100, and 365 days. A freeze automatically covers one missed day; earn one every 30-day streak milestone, up to 3.</p><p class="profile-records" id="profileRecords">Best race: — · Fewest clicks: —</p></div>
-                <button class="text-button account-logout" id="logoutButton">Sign out</button>
-              </div>
-            </section>
-          </div>
-          <details class="race-customize">
-            <summary>Customize race <span>Optional settings</span></summary>
-            <div class="race-customize-content">
-              <div class="difficulty-label">DIFFICULTY</div>
-              <div class="difficulty-options" role="group" aria-label="Choose difficulty">
-                <button class="difficulty-option selected" data-difficulty="easy"><span class="difficulty-icon easy-icon">●</span><span><strong>Easy</strong><small>Popular topics</small></span><span class="option-check">✓</span></button>
-                <button class="difficulty-option" data-difficulty="medium"><span class="difficulty-icon medium-icon">◆</span><span><strong>Medium</strong><small>Anything goes</small></span><span class="option-check">✓</span></button>
-                <button class="difficulty-option" data-difficulty="hard"><span class="difficulty-icon hard-icon">✦</span><span><strong>Hard</strong><small>Obscure topics</small></span><span class="option-check">✓</span></button>
-              </div>
-              <div class="custom-route-fields">
-                <div class="custom-route-heading">CHOOSE YOUR OWN ARTICLES</div>
-                <label>Starting article<input id="customStart" type="text" placeholder="e.g. Minecraft" autocomplete="off" maxlength="120"></label>
-                <label>Destination article<input id="customGoal" type="text" placeholder="e.g. World War II" autocomplete="off" maxlength="120"></label>
-                <p class="custom-route-note">Leave both blank for a random route. Fill in both to choose your own route.</p>
-              </div>
-              <div class="race-rules">
-                <div class="custom-route-heading">RACE RULES</div>
-                <label class="back-setting"><input type="checkbox" id="backEnabled" checked> Allow going back to previous articles</label>
-                <label class="back-setting"><input type="checkbox" id="blockFindShortcuts"> Disable Ctrl+F, Ctrl+G, and F3</label>
-                <label class="back-setting"><input type="checkbox" id="blockBrowserNavigation"> Disable browser back/forward shortcuts</label>
-              </div>
+            <div class="difficulty-label">DIFFICULTY</div>
+            <div class="difficulty-options" role="group" aria-label="Choose difficulty">
+              <button class="difficulty-option selected" data-difficulty="easy"><span class="difficulty-icon easy-icon">●</span><span><strong>Easy</strong><small>Popular topics</small></span><span class="option-check">✓</span></button>
+              <button class="difficulty-option" data-difficulty="medium"><span class="difficulty-icon medium-icon">◆</span><span><strong>Medium</strong><small>Anything goes</small></span><span class="option-check">✓</span></button>
+              <button class="difficulty-option" data-difficulty="hard"><span class="difficulty-icon hard-icon">✦</span><span><strong>Hard</strong><small>Obscure topics</small></span><span class="option-check">✓</span></button>
             </div>
-          </details>
+            <div class="custom-route-fields">
+              <div class="custom-route-heading">OR CHOOSE YOUR OWN ARTICLES</div>
+              <label>Starting article<input id="customStart" type="text" placeholder="e.g. Minecraft" autocomplete="off" maxlength="120"></label>
+              <label>Destination article<input id="customGoal" type="text" placeholder="e.g. World War II" autocomplete="off" maxlength="120"></label>
+              <p class="custom-route-note">Leave both blank to get a random route.</p>
+            </div>
+            <div class="race-rules">
+              <div class="custom-route-heading">RACE RULES</div>
+              <label class="back-setting"><input type="checkbox" id="backEnabled" checked> Allow going back to previous articles</label>
+              <label class="back-setting"><input type="checkbox" id="blockFindShortcuts"> Disable Ctrl+F, Ctrl+G, and F3</label>
+              <label class="back-setting"><input type="checkbox" id="blockBrowserNavigation"> Disable browser back/forward shortcuts</label>
+            </div>
+            <button class="primary-button" id="startButton"><span>Start a race</span><span class="button-arrow">→</span></button>
+            <p class="setup-note">No account needed. Just you and the entire encyclopedia.</p>
+          </div>
+          <section class="account-panel" id="accountPanel"><div class="account-panel-head"><div><span class="section-kicker">MULTIPLAYER</span><h3>Play with others</h3></div><span class="account-status" id="accountStatus">Not signed in</span></div><div id="signedOutArea"><p>Sign in to create a game code or join someone else&#39;s race.</p><div class="auth-actions"><button class="secondary-button" id="googleSignIn">Continue with Google</button><button class="secondary-button" id="emailSignIn">Email sign in</button><button class="secondary-button" id="emailSignUp">Create account</button></div></div><div id="signedInArea" class="hidden"><div class="room-actions"><button class="secondary-button" id="createRoomButton">Create game code</button><div class="join-code-row"><input id="joinCodeInput" maxlength="6" placeholder="Enter code" aria-label="Game code"><button class="secondary-button" id="joinRoomButton">Join</button></div></div><div id="roomStatus" class="room-status hidden"></div><div class="profile-progress frame-none" id="profileProgress"><div class="profile-progress-top"><div><span class="section-kicker">YOUR PROGRESS</span><strong>Daily streak</strong></div><span class="profile-frame-label" id="profileFrameLabel">None frame</span></div><div class="profile-stat-grid"><div><span>Current streak</span><strong id="currentStreak">0 days</strong></div><div><span>Longest streak</span><strong id="longestStreak">0 days</strong></div><div><span>Streak freezes</span><strong id="streakFreezes">0</strong></div></div><div class="profile-badges" id="profileBadges"><span class="profile-empty">Complete Daily Runs to earn badges.</span></div><p class="profile-freeze-note">Badges unlock at 3, 7, 14, 30, 60, 100, and 365 days. Frames unlock at 30, 60, 100, and 365 days. A freeze automatically covers one missed day; earn one every 30-day streak milestone, up to 3.</p><p class="profile-records" id="profileRecords">Best race: — · Fewest clicks: —</p></div><button class="text-button account-logout" id="logoutButton">Sign out</button></div></section>
           <div class="hero-foot"><span>01 <i></i> PICK A ROUTE</span><span>02 <i></i> FOLLOW THE LINKS</span><span>03 <i></i> REACH THE GOAL</span></div>
         </div>
       <section class="daily-panel" id="dailyPanel">
