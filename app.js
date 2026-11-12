@@ -488,7 +488,8 @@ function renderProfileProgress(profile = {}) {
   const fewest = profile.fewestRaceClicks == null ? "—" : profile.fewestRaceClicks;
   const dailyTime = profile.bestDailyTime == null ? "—" : formatTime(profile.bestDailyTime);
   const dailyClicks = profile.bestDailyClicks == null ? "—" : profile.bestDailyClicks;
-  $("profileRecords").textContent = "Best race: " + bestTime + " · Fewest clicks: " + fewest +
+  $("profileRecords").textContent = "Races: " + (profile.races||0) + " · Wins: " + (profile.wins||0) +
+    " | Best time: " + bestTime + " · Fewest clicks: " + fewest +
     " | Daily best: " + dailyTime + " · Fewest daily clicks: " + dailyClicks;
 }
 function appendLeaderboardRow(list, rank, name, detail, extraClass = "") {
