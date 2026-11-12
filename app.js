@@ -29,23 +29,26 @@ const popularArticles = [
 ];
 
 const mediumArticles = [
-  "Roman Empire", "Greek mythology", "Black hole", "Coral reef",
-  "Taj Mahal", "Machu Picchu", "Renaissance", "French Revolution",
-  "Industrial Revolution", "Hubble Space Telescope", "Great Barrier Reef",
-  "Sahara", "Nile", "Amazon River", "Antarctica", "Volcano",
-  "Tyrannosaurus", "Octopus", "Honey bee", "Red panda",
-  "Bermuda Triangle", "Stonehenge", "Pompeii", "Silk Road",
-  "Mona Lisa", "Vincent van Gogh", "William Shakespeare",
-  "Sherlock Holmes", "J. R. R. Tolkien", "The Lord of the Rings",
-  "Nintendo Switch", "Super Mario", "Minecraft modding",
-  "Nintendo Entertainment System", "Tetris", "Chess",
-  "Formula One", "Tour de France", "Wimbledon Championships",
-  "Mount Fuji", "Grand Canyon", "Yellowstone National Park",
-  "Statue of Liberty", "Big Ben", "Colosseum", "Pyramids of Giza",
-  "Great Depression", "Cold War", "Apollo 11", "International Space Station",
-  "Solar eclipse", "Aurora", "Tsunami", "Hurricane",
-  "Renewable energy", "Electric car", "Robotics", "Photography",
-  "Jazz", "Classical music", "Origami", "Sushi", "Chocolate"
+  "Roblox", "Fortnite", "LEGO", "PlayStation", "Xbox",
+  "Nintendo Switch", "Super Mario", "Sonic the Hedgehog",
+  "Pokémon", "The Legend of Zelda", "Among Us", "Tetris",
+  "SpongeBob SquarePants", "The Simpsons", "Shrek", "Toy Story",
+  "Jurassic Park", "Avatar (2009 film)", "Harry Potter",
+  "The Lord of the Rings", "Star Wars", "Spider-Man",
+  "MrBeast", "Mark Rober", "TikTok", "Instagram",
+  "Netflix", "YouTube Shorts", "Google Chrome", "Apple Inc.",
+  "Lego minifigure", "Roller coaster", "Skateboarding",
+  "Basketball", "American football", "Baseball", "Swimming",
+  "Olympic Games", "Formula One", "Dodgeball", "Bicycle",
+  "Golden retriever", "Red panda", "Penguin", "Dolphin",
+  "Great white shark", "Koala", "Giraffe", "Panda",
+  "Volcano", "Tornado", "Earthquake", "Rainbow",
+  "Northern Lights", "Solar eclipse", "Moon landing",
+  "International Space Station", "Mars", "Jupiter",
+  "Great Wall of China", "Eiffel Tower", "Statue of Liberty",
+  "Grand Canyon", "Niagara Falls", "Mount Everest",
+  "Japan", "Italy", "New York City", "Hawaii",
+  "Chocolate", "Sushi", "Pancake", "Popcorn"
 ];
 
 const themeSelect = $("themeSelect");
