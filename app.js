@@ -53,7 +53,23 @@ const mediumArticles = [
 
 const themeSelect = $("themeSelect");
 const backEnabledInput = $("backEnabled");
+const blockFindInput = $("blockFindShortcuts");
+const blockBrowserNavigationInput = $("blockBrowserNavigation");
 let backEnabled = localStorage.getItem("wikirace-back-enabled") !== "false";
+const raceOptions = {
+  blockFind: localStorage.getItem("wikirace-block-find") === "true",
+  blockBrowserNavigation: localStorage.getItem("wikirace-block-browser-navigation") === "true"
+};
+blockFindInput.checked = raceOptions.blockFind;
+blockBrowserNavigationInput.checked = raceOptions.blockBrowserNavigation;
+blockFindInput.addEventListener("change", () => {
+  raceOptions.blockFind = blockFindInput.checked;
+  localStorage.setItem("wikirace-block-find", String(raceOptions.blockFind));
+});
+blockBrowserNavigationInput.addEventListener("change", () => {
+  raceOptions.blockBrowserNavigation = blockBrowserNavigationInput.checked;
+  localStorage.setItem("wikirace-block-browser-navigation", String(raceOptions.blockBrowserNavigation));
+});
 backEnabledInput.checked = backEnabled;
 backEnabledInput.addEventListener("change", () => {
   backEnabled = backEnabledInput.checked;
@@ -359,7 +375,10 @@ updateBackButton();
     frame.setAttribute("sandbox", "allow-scripts allow-popups");
     const stylesheetLinks = prepared.stylesheets.map(href => '<link rel="stylesheet" href="' + href.replace(/&/g, "&amp;").replace(/"/g, "&quot;") + '">').join("");
     const articleMarkup = prepared.wrapper.outerHTML;
-    frame.srcdoc = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' + stylesheetLinks + '<style>html,body{margin:0;padding:0;background:#fff;color:#202122;font-family:Arial,Helvetica,sans-serif}body{padding:24px clamp(18px,4vw,48px) 48px;box-sizing:border-box}.mw-body{max-width:none!important;margin:0 auto!important}.mw-body-content{font-family:Arial,Helvetica,sans-serif}img{max-width:100%;height:auto}</style></head><body>' + articleMarkup + '<script>function reportHeight(){parent.postMessage({type:"wikirace-height",height:Math.ceil(document.documentElement.scrollHeight)},"*")}const heightObserver=new ResizeObserver(reportHeight);heightObserver.observe(document.documentElement);window.addEventListener("load",reportHeight);document.addEventListener("click",function(e){const a=e.target.closest("a[data-wiki-title]");if(a){e.preventDefault();parent.postMessage({type:"wikirace-navigation",title:a.dataset.wikiTitle},"*");}});reportHeight();</script></body></html>';
+    frame.srcdoc = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' + stylesheetLinks + '<style>html,body{margin:0;padding:0;background:#fff;color:#202122;font-family:Arial,Helvetica,sans-serif}body{padding:24px clamp(18px,4vw,48px) 48px;box-sizing:border-box}.mw-body{max-width:none!important;margin:0 auto!important}.mw-body-content{font-family:Arial,Helvetica,sans-serif}img{max-width:100%;height:auto}</style></head><body>' + articleMarkup + '<script>function reportHeight(){parent.postMessage({type:"wikirace-height",height:Math.ceil(document.documentElement.scrollHeight)},"*")}const heightObserver=new ResizeObserver(reportHeight);heightObserver.observe(document.documentElement);window.addEventListener("load",reportHeight);document.addEventListener("click",function(e){const a=e.target.closest("a[data-wiki-title]");if(a){e.preventDefault();parent.postMessage({type:"wikirace-navigation",title:a.dataset.wikiTitle},"*");}});reportHeight();' +
+      (raceOptions.blockFind ? 'document.addEventListener("keydown",function(e){var k=e.key.toLowerCase();if(((e.ctrlKey||e.metaKey)&&(k==="f"||k==="g"))||k==="f3"){e.preventDefault();e.stopImmediatePropagation();}},true);' : '') +
+      (raceOptions.blockBrowserNavigation ? 'document.addEventListener("keydown",function(e){var k=e.key.toLowerCase();if((e.altKey&&(k==="arrowleft"||k==="arrowright"))||(k==="backspace"&&!/input|textarea|select/i.test(e.target.tagName))){e.preventDefault();e.stopImmediatePropagation();}},true);' : '') +
+      '</script></body></html>';
     $("articleContent").replaceChildren(frame);
     $("articleError").classList.add("hidden");
     updateBackButton();
@@ -500,6 +519,15 @@ $("helpModal").addEventListener("click", event => {
 });
 document.addEventListener("keydown", event => {
   if (event.key === "Escape") $("helpModal").classList.add("hidden");
+  const key = event.key.toLowerCase();
+  if (raceOptions.blockFind && (((event.ctrlKey || event.metaKey) && (key === "f" || key === "g")) || key === "f3")) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  }
+  if (raceOptions.blockBrowserNavigation && ((event.altKey && (key === "arrowleft" || key === "arrowright")) || (key === "backspace" && !/input|textarea|select/i.test(event.target.tagName)))) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  }
 });
 
 window.addEventListener("message", async event => {
@@ -896,13 +924,18 @@ async function startRoomRace(){
   const b=$("roomStatus").querySelector(".room-start-button");if(b)b.disabled=true;
   try{
     const custom=await chooseCustomRoute(), route=custom || await chooseRoute();
-    await db.collection("rooms").doc(activeRoom.id).update({start:route[0],goal:route[1],difficulty:state.difficulty,status:"racing",startedAt:firebase.firestore.FieldValue.serverTimestamp()});
+    await db.collection("rooms").doc(activeRoom.id).update({start:route[0],goal:route[1],difficulty:state.difficulty,options:{blockFind:raceOptions.blockFind,blockBrowserNavigation:raceOptions.blockBrowserNavigation,backEnabled},status:"racing",startedAt:firebase.firestore.FieldValue.serverTimestamp()});
   }catch(e){setToast(authError(e));if(b)b.disabled=false;}
 }
 async function launchSharedRace(room){
   stopTimer();if(state.requestController)state.requestController.abort();
   state.clicks=0;state.seconds=0;state.loading=false;state.difficulty=room.difficulty||"medium";
   state.start=room.start;state.goal=room.goal;state.current=room.start;state.history=[];state.historyIndex=-1;
+   Object.assign(raceOptions, room.options || {});
+   blockFindInput.checked = raceOptions.blockFind;
+   blockBrowserNavigationInput.checked = raceOptions.blockBrowserNavigation;
+   backEnabled = room.options?.backEnabled !== false;
+   backEnabledInput.checked = backEnabled;
   recordArticleVisit(room.start);$("startTitle").textContent=room.start;$("goalTitle").textContent=room.goal;$("currentTitle").textContent=room.start;
   updateStats();showScreen("game");startTimer();await loadArticle(room.start,false);
   roomPanel("Race in progress",window.roomPlayers);
