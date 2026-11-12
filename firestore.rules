@@ -16,9 +16,19 @@ service cloud.firestore {
       allow delete: if signedIn() && resource.data.uid == request.auth.uid;
     }
 
+    function validPresence(userId) {
+      return signedIn()
+             && request.auth.uid == userId
+             && request.resource.data.keys().hasAll(["online", "lastSeen", "username"])
+             && request.resource.data.keys().hasOnly(["online", "lastSeen", "username"])
+             && request.resource.data.online is bool
+             && request.resource.data.lastSeen is timestamp
+             && request.resource.data.username is string;
+    }
+
     match /presence/{userId} {
       allow read: if signedIn();
-      allow create, update: if signedIn() && request.auth.uid == userId;
+      allow create, update: if validPresence(userId);
       allow delete: if signedIn() && request.auth.uid == userId;
     }
 
