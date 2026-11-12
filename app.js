@@ -393,6 +393,7 @@ updateBackButton();
     $("articleError").classList.remove("hidden");
   } finally {
     state.loading = false;
+    updateBackButton();
   }
 }
 
