@@ -111,7 +111,10 @@ const state = {
   loading: false,
   requestController: null,
   history: [],
-  historyIndex: -1
+  historyIndex: -1,
+  mode: "solo",
+  dailyDate: null,
+  dailySubmitted: false
 };
 
 function updateBackButton() {
@@ -420,6 +423,252 @@ function launchConfetti() {
   launchConfetti.cleanup = window.setTimeout(() => layer.replaceChildren(), 5200);
 }
 
+
+function utcDateKey(date = new Date()) {
+  return date.toISOString().slice(0, 10);
+}
+function addUtcDays(dateKey, amount) {
+  const date = new Date(dateKey + "T00:00:00Z");
+  date.setUTCDate(date.getUTCDate() + amount);
+  return utcDateKey(date);
+}
+function dailyRouteForDate(dateKey) {
+  const pool = [...new Set([...popularArticles, ...mediumArticles])];
+  let seed = 2166136261;
+  for (let i = 0; i < dateKey.length; i++) {
+    seed ^= dateKey.charCodeAt(i);
+    seed = Math.imul(seed, 16777619);
+  }
+  const random = () => {
+    seed += 0x6D2B79F5;
+    let value = seed;
+    value = Math.imul(value ^ (value >>> 15), value | 1);
+    value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
+    return ((value ^ (value >>> 14) >>> 0) / 4294967296);
+  };
+  const startIndex = Math.floor(random() * pool.length);
+  let goalIndex = Math.floor(random() * pool.length);
+  while (goalIndex === startIndex) goalIndex = (goalIndex + 1) % pool.length;
+  return [pool[startIndex], pool[goalIndex]];
+}
+function dailyDateLabel(dateKey) {
+  return new Date(dateKey + "T12:00:00Z").toLocaleDateString(undefined, {
+    weekday: "long", month: "long", day: "numeric", timeZone: "UTC"
+  });
+}
+function formatDailyBadge(milestone) {
+  return ({3:"3-Day Streak",7:"Weekly Runner",14:"Dedicated Racer",30:"Monthly Legend",60:"Elite Runner",100:"Century",365:"Year-Round"})[milestone] || (milestone + "-Day Streak");
+}
+function renderProfileProgress(profile = {}) {
+  const current = Number(profile.currentStreak || 0);
+  const longest = Number(profile.longestStreak || 0);
+  $("currentStreak").textContent = current + " day" + (current === 1 ? "" : "s");
+  $("longestStreak").textContent = longest + " day" + (longest === 1 ? "" : "s");
+  $("streakFreezes").textContent = String(profile.streakFreezes || 0);
+  const frame = profile.profileFrame || "none";
+  $("profileFrameLabel").textContent = ({bronze:"Bronze",silver:"Silver",gold:"Gold",diamond:"Diamond"})[frame] || "None";
+  $("profileProgress").className = "profile-progress frame-" + frame;
+  const badges = $("profileBadges");
+  badges.replaceChildren();
+  const earned = profile.streakBadges || [];
+  if (!earned.length) {
+    const empty = document.createElement("span");
+    empty.className = "profile-empty";
+    empty.textContent = "Complete Daily Runs to earn badges.";
+    badges.appendChild(empty);
+  } else {
+    earned.slice().sort((a,b)=>a-b).forEach(milestone=>{
+      const badge=document.createElement("span");
+      badge.className="profile-badge";
+      badge.textContent=formatDailyBadge(milestone);
+      badges.appendChild(badge);
+    });
+  }
+  const bestTime = profile.bestRaceTime == null ? "—" : formatTime(profile.bestRaceTime);
+  const fewest = profile.fewestRaceClicks == null ? "—" : profile.fewestRaceClicks;
+  const dailyTime = profile.bestDailyTime == null ? "—" : formatTime(profile.bestDailyTime);
+  const dailyClicks = profile.bestDailyClicks == null ? "—" : profile.bestDailyClicks;
+  $("profileRecords").textContent = "Best race: " + bestTime + " · Fewest clicks: " + fewest +
+    " | Daily best: " + dailyTime + " · Fewest daily clicks: " + dailyClicks;
+}
+function appendLeaderboardRow(list, rank, name, detail, extraClass = "") {
+  const row=document.createElement("li");
+  if(extraClass)row.className=extraClass;
+  const position=document.createElement("span");position.className="board-rank";position.textContent=String(rank)+".";
+  const player=document.createElement("strong");player.textContent=name;
+  const score=document.createElement("span");score.className="board-score";score.textContent=detail;
+  row.append(position,player,score);list.appendChild(row);
+}
+async function loadDailyLeaderboard(dateKey = utcDateKey()) {
+  const list=$("dailyLeaderboard");
+  list.replaceChildren();
+  try {
+    const snapshot=await db.collection("dailyRuns").doc(dateKey).collection("results").get();
+    const results=snapshot.docs.map(doc=>doc.data()).sort((a,b)=>(a.clicks-b.clicks)||(a.seconds-b.seconds));
+    $("dailyCompletionCount").textContent=String(results.length);
+    const average=results.length ? (results.reduce((sum,item)=>sum+Number(item.clicks||0),0)/results.length).toFixed(1) : "—";
+    $("dailyAverageClicks").textContent=average;
+    if(!results.length){
+      const empty=document.createElement("li");empty.className="board-empty";empty.textContent="No completed runs yet. Set the first score.";list.appendChild(empty);
+    } else {
+      results.slice(0,10).forEach((result,index)=>appendLeaderboardRow(list,index+1,result.username||"WikiRace player",result.clicks+" clicks · "+formatTime(result.seconds)));
+    }
+    if(currentUser){
+      const own=await db.collection("dailyRuns").doc(dateKey).collection("results").doc(currentUser.uid).get();
+      $("dailyRunButton").textContent=own.exists?"Improve today's score":"Play today's run";
+    }
+  } catch(error) {
+    $("dailyCompletionCount").textContent="—";
+    $("dailyAverageClicks").textContent="—";
+    const empty=document.createElement("li");empty.className="board-empty";empty.textContent="Sign in to load today's leaderboard.";list.appendChild(empty);
+  }
+}
+async function loadStreakLeaderboard() {
+  const list=$("streakLeaderboard");
+  list.replaceChildren();
+  try {
+    const snapshot=await db.collection("publicProfiles").orderBy("longestStreak","desc").limit(10).get();
+    const players=snapshot.docs.map(doc=>doc.data()).filter(player=>Number(player.longestStreak||0)>0);
+    if(!players.length){
+      const empty=document.createElement("li");empty.className="board-empty";empty.textContent="No streaks yet.";list.appendChild(empty);return;
+    }
+    players.forEach((player,index)=>appendLeaderboardRow(list,index+1,player.username||"WikiRace player",player.longestStreak+" days",player.profileFrame||""));
+  } catch(error) {
+    const empty=document.createElement("li");empty.className="board-empty";empty.textContent="Sign in to load the streak leaderboard.";list.appendChild(empty);
+  }
+}
+async function loadDailyChallenge() {
+  const dateKey=utcDateKey();
+  const route=dailyRouteForDate(dateKey);
+  $("dailyDate").textContent=dailyDateLabel(dateKey)+" · Resets at midnight UTC";
+  $("dailyStart").textContent=route[0];
+  $("dailyGoal").textContent=route[1];
+  $("dailyRunButton").textContent="Play today's run";
+  await Promise.all([loadDailyLeaderboard(dateKey),loadStreakLeaderboard()]);
+}
+async function startDailyRun() {
+  if(!currentUser){authMode("signin");setToast("Sign in to save your Daily Run score and streak.");return;}
+  const button=$("dailyRunButton");
+  button.disabled=true;
+  try {
+    if(state.requestController)state.requestController.abort();
+    stopTimer();
+    state.mode="daily";
+    state.dailyDate=utcDateKey();
+    state.dailySubmitted=false;
+    state.clicks=0;state.seconds=0;state.loading=false;
+    const [start,goal]=dailyRouteForDate(state.dailyDate);
+    state.start=start;state.goal=goal;state.current=start;
+    state.history=[];state.historyIndex=-1;recordArticleVisit(start);
+    $("startTitle").textContent=start;$("goalTitle").textContent=goal;$("currentTitle").textContent=start;
+    $("articleContent").innerHTML='<div class="article-loading"><div class="loader"></div><p>Loading today\'s Daily Run…</p></div>';
+    $("articleError").classList.add("hidden");
+    updateStats();showScreen("game");startTimer();
+    await loadArticle(start,false);
+  } catch(error) {
+    setToast(error.message||"Could not start today's Daily Run.");
+  } finally {
+    button.disabled=false;
+  }
+}
+async function saveDailyResult() {
+  if(state.mode!=="daily"||state.dailySubmitted||!currentUser||!state.dailyDate)return;
+  state.dailySubmitted=true;
+  const dateKey=state.dailyDate;
+  const resultRef=db.collection("dailyRuns").doc(dateKey).collection("results").doc(currentUser.uid);
+  const userRef=db.collection("users").doc(currentUser.uid);
+  const publicRef=db.collection("publicProfiles").doc(currentUser.uid);
+  try {
+    const outcome=await db.runTransaction(async transaction=>{
+      const [resultSnap,userSnap]=await Promise.all([transaction.get(resultRef),transaction.get(userRef)]);
+      const oldResult=resultSnap.exists?resultSnap.data():null;
+      const improved=!oldResult||state.clicks<oldResult.clicks||(state.clicks===oldResult.clicks&&state.seconds<oldResult.seconds);
+      if(!improved)return {improved:false,profile:userSnap.data()||{}};
+      const profile=userSnap.data()||{};
+      const lastDate=profile.lastDailyDate||"";
+      let current=Number(profile.currentStreak||0);
+      let longest=Number(profile.longestStreak||0);
+      let freezes=Number(profile.streakFreezes||0);
+      let total=Number(profile.totalDailyRuns||0);
+      let lastFreezeMilestone=Number(profile.lastFreezeMilestone||0);
+      let usedFreeze=false;
+      if(lastDate!==dateKey){
+        if(lastDate===addUtcDays(dateKey,-1))current+=1;
+        else if(lastDate===addUtcDays(dateKey,-2)&&freezes>0){current+=1;freezes-=1;usedFreeze=true;}
+        else current=1;
+        total+=1;
+        longest=Math.max(longest,current);
+        if(current>=30&&current%30===0&&lastFreezeMilestone<current){
+          freezes=Math.min(3,freezes+1);
+          lastFreezeMilestone=current;
+        }
+      }
+      const oldBadges=Array.isArray(profile.streakBadges)?profile.streakBadges:[];
+      const milestones=[3,7,14,30,60,100,365];
+      const badges=[...new Set([...oldBadges,...milestones.filter(value=>longest>=value)])].sort((a,b)=>a-b);
+      const frame=longest>=365?"diamond":longest>=100?"gold":longest>=60?"silver":longest>=30?"bronze":"none";
+      const history=Array.isArray(profile.dailyHistory)?profile.dailyHistory.slice():[];
+      const historyIndex=history.findIndex(item=>item.date===dateKey);
+      const historyItem={date:dateKey,start:state.start,goal:state.goal,clicks:state.clicks,seconds:state.seconds};
+      if(historyIndex>=0)history[historyIndex]=historyItem;else history.push(historyItem);
+      history.sort((a,b)=>b.date.localeCompare(a.date));
+      const bestDailyTime=profile.bestDailyTime==null?state.seconds:Math.min(Number(profile.bestDailyTime),state.seconds);
+      const bestDailyClicks=profile.bestDailyClicks==null?state.clicks:Math.min(Number(profile.bestDailyClicks),state.clicks);
+      const nextProfile={
+        lastDailyDate:dateKey,currentStreak:current,longestStreak:longest,streakFreezes:freezes,
+        totalDailyRuns:total,lastFreezeMilestone,streakBadges:badges,profileFrame:frame,
+        bestDailyTime,bestDailyClicks,dailyHistory:history.slice(0,60)
+      };
+      transaction.set(resultRef,{
+        uid:currentUser.uid,date:dateKey,username:currentUsername||"WikiRace player",
+        start:state.start,goal:state.goal,clicks:state.clicks,seconds:state.seconds,
+        completedAt:firebase.firestore.FieldValue.serverTimestamp()
+      });
+      transaction.set(userRef,nextProfile,{merge:true});
+      transaction.set(publicRef,{
+        uid:currentUser.uid,username:currentUsername||"WikiRace player",
+        currentStreak:current,longestStreak:longest,totalDailyRuns:total,
+        streakBadges:badges,profileFrame:frame
+      },{merge:true});
+      return {improved:true,profile:{...profile,...nextProfile},usedFreeze};
+    });
+    if(outcome.improved){
+      renderProfileProgress(outcome.profile);
+      setToast(outcome.usedFreeze?"Daily Run saved. A streak freeze protected your streak.":"Daily Run saved to the leaderboard.");
+    } else {
+      setToast("That score did not beat your best result for today.");
+    }
+    await Promise.all([loadDailyLeaderboard(dateKey),loadStreakLeaderboard()]);
+  } catch(error) {
+    state.dailySubmitted=false;
+    setToast("Your run finished, but its score could not be saved: "+authError(error));
+  }
+}
+async function openDailyHistory() {
+  const list=$("dailyHistoryList");
+  list.replaceChildren();
+  $("dailyHistoryModal").classList.remove("hidden");
+  if(!currentUser){
+    const empty=document.createElement("p");empty.className="board-empty";empty.textContent="Sign in to view your Daily Run history.";list.appendChild(empty);return;
+  }
+  try {
+    const snap=await db.collection("users").doc(currentUser.uid).get();
+    const history=snap.data()?.dailyHistory||[];
+    if(!history.length){
+      const empty=document.createElement("p");empty.className="board-empty";empty.textContent="Your completed Daily Runs will appear here.";list.appendChild(empty);return;
+    }
+    history.slice().sort((a,b)=>b.date.localeCompare(a.date)).forEach(item=>{
+      const row=document.createElement("div");row.className="history-row";
+      const date=document.createElement("strong");date.textContent=dailyDateLabel(item.date);
+      const route=document.createElement("span");route.textContent=item.start+" → "+item.goal;
+      const score=document.createElement("small");score.textContent=item.clicks+" clicks · "+formatTime(item.seconds);
+      row.append(date,route,score);list.appendChild(row);
+    });
+  } catch(error) {
+    const empty=document.createElement("p");empty.className="board-empty";empty.textContent=authError(error);list.appendChild(empty);
+  }
+}
+
 function finishRace() {
   stopTimer();
   state.loading = false;
@@ -433,10 +682,26 @@ function finishRace() {
   showScreen("win");
   launchConfetti();
   updateRoomPlayer(true);
-  if(currentUser) db.collection("users").doc(currentUser.uid).set({races:firebase.firestore.FieldValue.increment(1),wins:firebase.firestore.FieldValue.increment(1),lastRaceAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true}).catch(()=>{});
+  if(currentUser) {
+    const profileRef=db.collection("users").doc(currentUser.uid);
+    db.runTransaction(async transaction=>{
+      const snapshot=await transaction.get(profileRef);
+      const profile=snapshot.data()||{};
+      transaction.set(profileRef,{
+        races:Number(profile.races||0)+1,
+        wins:Number(profile.wins||0)+1,
+        bestRaceTime:profile.bestRaceTime==null?state.seconds:Math.min(Number(profile.bestRaceTime),state.seconds),
+        fewestRaceClicks:profile.fewestRaceClicks==null?state.clicks:Math.min(Number(profile.fewestRaceClicks),state.clicks),
+        lastRaceAt:firebase.firestore.FieldValue.serverTimestamp()
+      },{merge:true});
+    }).catch(error=>console.warn("Could not update race records:",error));
+  }
+  if(state.mode==="daily")saveDailyResult();
 }
 
 async function beginRace() {
+  state.mode="solo";
+  state.dailyDate=null;
   const startButton = $("startButton");
   startButton.disabled = true;
   startButton.querySelector("span").textContent = "Finding a route…";
@@ -472,6 +737,8 @@ async function beginRace() {
 }
 
 async function newRoute() {
+  state.mode="solo";
+  state.dailyDate=null;
   stopTimer();
   state.loading = false;
   if (state.requestController) state.requestController.abort();
@@ -587,7 +854,7 @@ function authMode(mode) {
 function renderAccount() {
   $("accountButton").textContent = currentUser ? (currentUsername || currentUser.displayName || currentUser.email || "Account").split(" ")[0] : "Sign in";
   $("topSignOutButton").classList.toggle("hidden", !currentUser);
-  $("accountStatus").textContent = currentUser ? (currentUser.displayName || currentUser.email) : "Not signed in";
+  $("accountStatus").textContent = currentUser ? (currentUsername || currentUser.displayName || currentUser.email) : "Not signed in";
   $("signedOutArea").classList.toggle("hidden", !!currentUser);
   $("signedInArea").classList.toggle("hidden", !currentUser);
 }
@@ -603,6 +870,15 @@ async function profileFor(user) {
     await ref.set(profile);
   }
   currentUsername = profile.username || (user.displayName || (user.email || "Player").split("@")[0]).slice(0,20);
+  renderProfileProgress(profile);
+  await db.collection("publicProfiles").doc(user.uid).set({
+    uid:user.uid,username:currentUsername,
+    currentStreak:Number(profile.currentStreak||0),
+    longestStreak:Number(profile.longestStreak||0),
+    totalDailyRuns:Number(profile.totalDailyRuns||0),
+    streakBadges:profile.streakBadges||[],
+    profileFrame:profile.profileFrame||"none"
+  },{merge:true});
   const key = usernameKey(currentUsername);
   if(key) {
     const indexRef=db.collection("usernames").doc(key), indexSnap=await indexRef.get();
@@ -930,6 +1206,7 @@ async function startRoomRace(){
 }
 async function launchSharedRace(room){
   stopTimer();if(state.requestController)state.requestController.abort();
+  state.mode="multiplayer";state.dailyDate=null;
   state.clicks=0;state.seconds=0;state.loading=false;state.difficulty=room.difficulty||"medium";
   state.start=room.start;state.goal=room.goal;state.current=room.start;state.history=[];state.historyIndex=-1;
    Object.assign(raceOptions, room.options || {});
@@ -954,6 +1231,10 @@ async function handleStartAction(){
   if(activeRoomCode){if(activeRoom?.hostUid===currentUser?.uid)await startRoomRace();else setToast("Waiting for the host to start the race.");return;}
   await beginRace();
 }
+$("dailyRunButton").addEventListener("click",startDailyRun);
+$("dailyHistoryButton").addEventListener("click",openDailyHistory);
+$("dailyHistoryClose").addEventListener("click",()=>$("dailyHistoryModal").classList.add("hidden"));
+$("dailyHistoryModal").addEventListener("click",event=>{if(event.target===$("dailyHistoryModal"))$("dailyHistoryModal").classList.add("hidden");});
 $("createRoomButton").addEventListener("click",createRoom);
 $("joinRoomButton").addEventListener("click",joinRoom);
 $("joinCodeInput").addEventListener("input",()=>{$("joinCodeInput").value=$("joinCodeInput").value.toUpperCase().replace(/[^A-HJ-NP-Z2-9]/g,"").slice(0,6);});
@@ -971,3 +1252,4 @@ $("closeDonation")?.addEventListener("click", () => {
 });
 
 window.addEventListener("pagehide",()=>{if(currentUser)updateMyPresence(false);});
+loadDailyChallenge();
