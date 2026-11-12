@@ -1167,17 +1167,35 @@ function listenForGameInvites(){
   },error=>setToast(authError(error)));
 }
 
-function detachRoomListeners(){if(roomUnsubscribe)roomUnsubscribe();if(playersUnsubscribe)playersUnsubscribe();if(chatUnsubscribe)chatUnsubscribe();roomUnsubscribe=null;playersUnsubscribe=null;chatUnsubscribe=null;$("multiplayerChat")?.classList.add("hidden");}
+function detachRoomListeners(){if(roomUnsubscribe)roomUnsubscribe();if(playersUnsubscribe)playersUnsubscribe();if(chatUnsubscribe)chatUnsubscribe();roomUnsubscribe=null;playersUnsubscribe=null;chatUnsubscribe=null;$("multiplayerChat")?.classList.add("hidden");$("chatLauncher")?.classList.add("hidden");}
 function makeRoomCode(){const chars="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";let s="";for(let i=0;i<6;i++)s+=chars[Math.floor(Math.random()*chars.length)];return s;}
 async function username(){const snap=await db.collection("users").doc(currentUser.uid).get();return snap.data()?.username || currentUser.displayName || (currentUser.email||"Player").split("@")[0];}
 function roomPanel(message,players=[]){
   const el=$("roomStatus");el.classList.remove("hidden");el.replaceChildren();
   const heading=document.createElement("strong");heading.textContent=message;el.appendChild(heading);
   if(activeRoomCode){const code=document.createElement("div");code.className="room-code-display";code.textContent="GAME CODE: "+activeRoomCode;el.appendChild(code);}
-  if(players.length){const list=document.createElement("div");list.className="room-player-list";players.forEach(p=>{const item=document.createElement("span");item.textContent=p.username+(p.finished?" ✓":"");list.appendChild(item);});el.appendChild(list);}
-  if(activeRoom?.hostUid===currentUser?.uid && activeRoom.status==="waiting"){const b=document.createElement("button");b.className="secondary-button room-start-button";b.textContent="Start race for everyone";b.onclick=startRoomRace;el.appendChild(b);}
+  if(activeRoom?.status==="waiting"){
+    const prompt=document.createElement("p");prompt.className="room-ready-prompt";prompt.textContent="Are you ready? Everyone needs to ready up before the host can start.";el.appendChild(prompt);
+    const ready=document.createElement("button");ready.className="secondary-button room-ready-button";ready.textContent=players.find(p=>p.uid===currentUser?.uid)?.ready?"Not ready":"I'm ready";ready.classList.toggle("is-ready",players.find(p=>p.uid===currentUser?.uid)?.ready===true);ready.onclick=toggleRoomReady;el.appendChild(ready);
+  }
+  if(players.length){
+    const list=document.createElement("div");list.className="room-player-list";
+    players.forEach(p=>{const item=document.createElement("span");item.className=p.ready?"player-ready":"player-not-ready";item.textContent=(p.username||"Player")+" · "+(activeRoom?.status==="waiting"?(p.ready?"Ready":"Not ready"):(p.finished?"Finished":"Playing"));list.appendChild(item);});
+    el.appendChild(list);
+  }
+  if(activeRoom?.hostUid===currentUser?.uid && activeRoom.status==="waiting"){
+    const allReady=players.length>0&&players.every(p=>p.ready===true);
+    const b=document.createElement("button");b.className="secondary-button room-start-button";b.textContent=allReady?"Start race for everyone":"Waiting for everyone to ready up";b.disabled=!allReady;b.onclick=startRoomRace;el.appendChild(b);
+  }
   const leave=document.createElement("button");leave.className="text-button";leave.textContent="Leave game";leave.onclick=leaveRoom;el.appendChild(leave);
 }
+async function toggleRoomReady(){
+  if(!activeRoom||activeRoom.status!=="waiting"||!currentUser)return;
+  const player=window.roomPlayers.find(p=>p.uid===currentUser.uid);
+  try{await activeRoomRef().collection("players").doc(currentUser.uid).update({ready:player?.ready!==true});}
+  catch(error){setToast(authError(error));}
+}
+function activeRoomRef(){return db.collection("rooms").doc(activeRoom.id);}
 async function listenRoom(id,code){
   detachRoomListeners();activeRoomCode=code;
   roomUnsubscribe=db.collection("rooms").doc(id).onSnapshot(async snap=>{
@@ -1190,16 +1208,17 @@ async function listenRoom(id,code){
   },e=>setToast(authError(e)));
   playersUnsubscribe=db.collection("rooms").doc(id).collection("players").onSnapshot(s=>{
     window.roomPlayers=s.docs.map(d=>d.data());
-    if(activeRoom?.status==="waiting")roomPanel("Waiting for the host to start",window.roomPlayers);
+    if(activeRoom?.status==="waiting")roomPanel("Waiting for players",window.roomPlayers);
   });
-  roomPanel("Waiting for players");
+  roomPanel("Waiting for players",window.roomPlayers);
+  listenRoomChat(id);
 }
 async function createRoom(){
   if(!currentUser)return authMode("signin");
   try{
     const code=makeRoomCode(), name=await username(), ref=db.collection("rooms").doc();
     await ref.set({code,hostUid:currentUser.uid,status:"waiting",createdAt:firebase.firestore.FieldValue.serverTimestamp(),start:"",goal:"",difficulty:"medium"});
-    await ref.collection("players").doc(currentUser.uid).set({uid:currentUser.uid,username:name,clicks:0,seconds:0,current:"",finished:false});
+    await ref.collection("players").doc(currentUser.uid).set({uid:currentUser.uid,username:name,clicks:0,seconds:0,current:"",finished:false,ready:false});
     await listenRoom(ref.id,code);
   }catch(e){setToast(authError(e));}
 }
@@ -1211,12 +1230,13 @@ async function joinRoom(){
     const found=await db.collection("rooms").where("code","==",code).limit(1).get();
     const doc=found.docs.find(d=>d.data().status==="waiting");
     if(!doc)return setToast("No waiting game was found with that code.");
-    await doc.ref.collection("players").doc(currentUser.uid).set({uid:currentUser.uid,username:await username(),clicks:0,seconds:0,current:"",finished:false});
+    await doc.ref.collection("players").doc(currentUser.uid).set({uid:currentUser.uid,username:await username(),clicks:0,seconds:0,current:"",finished:false,ready:false});
     await listenRoom(doc.id,code);$("joinCodeInput").value="";
   }catch(e){setToast(authError(e));}
 }
 async function startRoomRace(){
   if(!activeRoom || activeRoom.hostUid!==currentUser?.uid || activeRoom.status!=="waiting")return;
+  if(!window.roomPlayers.length||window.roomPlayers.some(p=>p.ready!==true))return setToast("Everyone needs to ready up first.");
   const b=$("roomStatus").querySelector(".room-start-button");if(b)b.disabled=true;
   try{
     const custom=await chooseCustomRoute(), route=custom || await chooseRoute();
@@ -1241,7 +1261,7 @@ function renderRoomChat(messages){
 function setRoomChatOpen(open){
   const panel=$("multiplayerChat"),launcher=$("chatLauncher");
   panel.classList.toggle("chat-open",open);panel.classList.toggle("hidden",!open);
-  panel.setAttribute("aria-hidden",String(!open));launcher.classList.toggle("hidden",!activeRoom||activeRoom.status!=="racing");
+  panel.setAttribute("aria-hidden",String(!open));launcher.classList.toggle("hidden",!activeRoom);
   launcher.setAttribute("aria-expanded",String(open));
   if(open){$("chatUnread").classList.add("hidden");$("chatUnread").textContent="0";$("chatInput").focus();}
 }
@@ -1257,7 +1277,7 @@ function listenRoomChat(roomId){
 async function sendRoomChat(event){
   event.preventDefault();
   const input=$("chatInput"),message=input.value.trim();
-  if(!message||chatSending||!activeRoom||activeRoom.status!=="racing"||!currentUser)return;
+  if(!message||chatSending||!activeRoom||!["waiting","racing"].includes(activeRoom.status)||!currentUser)return;
   chatSending=true;$("chatSendButton").disabled=true;
   try{
     await db.collection("rooms").doc(activeRoom.id).collection("chat").add({
@@ -1285,7 +1305,6 @@ async function launchSharedRace(room){
   recordArticleVisit(room.start);$("startTitle").textContent=room.start;$("goalTitle").textContent=room.goal;$("currentTitle").textContent=room.start;
   updateStats();showScreen("game");startTimer();await loadArticle(room.start,false);
   roomPanel("Race in progress",window.roomPlayers);
-  listenRoomChat(room.id);
 }
 async function updateRoomPlayer(finished=false){
   if(!activeRoom || activeRoom.status!=="racing" || !currentUser)return;
