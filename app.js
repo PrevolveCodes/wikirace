@@ -534,6 +534,10 @@ let activeRoomCode = "";
 let roomUnsubscribe = null;
 let playersUnsubscribe = null;
 let inviteUnsubscribe = null;
+let presenceHeartbeat = null;
+let friendPresenceUnsubs = [];
+let friendPresenceStates = new Map();
+let friendPresenceRefreshTimer = null;
 let roomLaunchKey = "";
 window.roomPlayers = [];
 
@@ -584,8 +588,8 @@ auth.onAuthStateChanged(async user => {
   currentUser = user;
   currentUsername = "";
   renderAccount();
-  if (user) { try { await profileFor(user); listenForGameInvites(); } catch(e) { setToast(authError(e)); } }
-  else { if(inviteUnsubscribe)inviteUnsubscribe(); inviteUnsubscribe=null; $("gameInviteNotifications").replaceChildren(); detachRoomListeners(); activeRoom=null; activeRoomCode=""; $("roomStatus").classList.add("hidden"); }
+  if (user) { try { await profileFor(user); listenForGameInvites(); startPresenceTracking(); } catch(e) { setToast(authError(e)); } }
+  else { if(presenceHeartbeat)clearInterval(presenceHeartbeat); presenceHeartbeat=null; document.removeEventListener("visibilitychange",handlePresenceVisibility); stopFriendPresenceListeners(); if(inviteUnsubscribe)inviteUnsubscribe(); inviteUnsubscribe=null; $("gameInviteNotifications").replaceChildren(); detachRoomListeners(); activeRoom=null; activeRoomCode=""; $("roomStatus").classList.add("hidden"); }
   renderAccount();
 });
 $("accountButton").addEventListener("click",()=>currentUser ? openFriends() : authMode("signin"));
@@ -634,6 +638,7 @@ function friendRow(name,detail,actions=[]){
 }
 async function loadFriends(){
   if(!currentUser)return;
+  stopFriendPresenceListeners();
   const requests=$("friendRequestsList"), friends=$("friendsList");
   requests.replaceChildren();friends.replaceChildren();
   try{
@@ -654,10 +659,72 @@ async function loadFriends(){
     connections.forEach(doc=>{
       const data=doc.data(), otherUid=data.members.find(id=>id!==currentUser.uid);
       const name=data.usernames?.[otherUid]||"WikiRace player";
-      friends.appendChild(friendRow(name,"Friend",[{label:"Invite",kind:"friend-invite",run:()=>inviteFriend(otherUid,name)}]));
+      const row=friendRow(name,"Friend",[{label:"Invite",kind:"friend-invite",run:()=>inviteFriend(otherUid,name)}]);
+      friends.appendChild(row);
+      watchFriendPresence(otherUid,row);
     });
   }catch(error){friendMessage(authError(error),true);}
 }
+function stopFriendPresenceListeners(){
+  friendPresenceUnsubs.forEach(unsubscribe=>unsubscribe());
+  friendPresenceUnsubs=[];
+  friendPresenceStates.clear();
+  if(friendPresenceRefreshTimer)clearInterval(friendPresenceRefreshTimer);
+  friendPresenceRefreshTimer=null;
+}
+function updateFriendPresenceDisplay(){
+  document.querySelectorAll(".friend-presence").forEach(el=>{
+    const state=friendPresenceStates.get(el.dataset.uid);
+    const online=!!state && state.online && state.lastSeen && Date.now()-state.lastSeen<120000;
+    el.classList.toggle("is-online",online);
+    el.classList.toggle("is-offline",!online);
+    const label=el.querySelector(".presence-label");
+    if(label)label.textContent=online?"Online":"Offline";
+  });
+}
+function watchFriendPresence(uid,row){
+  const status=document.createElement("span");
+  status.className="friend-presence is-offline";
+  status.dataset.uid=uid;
+  const dot=document.createElement("i");
+  dot.className="presence-dot";
+  const label=document.createElement("span");
+  label.className="presence-label";
+  label.textContent="Offline";
+  status.append(dot,label);
+  row.querySelector(".friend-info").appendChild(status);
+  const unsubscribe=db.collection("presence").doc(uid).onSnapshot(snap=>{
+    const data=snap.data()||{};
+    friendPresenceStates.set(uid,{
+      online:data.online===true,
+      lastSeen:data.lastSeen?.toMillis?.()||0
+    });
+    updateFriendPresenceDisplay();
+  },error=>setToast(authError(error)));
+  friendPresenceUnsubs.push(unsubscribe);
+  if(!friendPresenceRefreshTimer)friendPresenceRefreshTimer=setInterval(updateFriendPresenceDisplay,30000);
+}
+async function updateMyPresence(online=true){
+  if(!currentUser)return;
+  try{
+    await db.collection("presence").doc(currentUser.uid).set({
+      online,
+      lastSeen:firebase.firestore.FieldValue.serverTimestamp(),
+      username:currentUsername
+    },{merge:true});
+  }catch(error){if(online)setToast(authError(error));}
+}
+function startPresenceTracking(){
+  if(presenceHeartbeat)clearInterval(presenceHeartbeat);
+  updateMyPresence(true);
+  presenceHeartbeat=setInterval(()=>updateMyPresence(true),60000);
+  document.removeEventListener("visibilitychange",handlePresenceVisibility);
+  document.addEventListener("visibilitychange",handlePresenceVisibility);
+}
+function handlePresenceVisibility(){
+  if(document.visibilityState==="visible")updateMyPresence(true);
+}
+
 async function addFriendByUsername(){
   if(!currentUser)return;
   const entered=$("friendUsernameInput").value.trim(), key=usernameKey(entered);
@@ -868,3 +935,5 @@ $("closeDonation")?.addEventListener("click", () => {
   donationPopup?.classList.add("hidden");
   localStorage.setItem(donationDismissedKey, "true");
 });
+
+window.addEventListener("pagehide",()=>{if(currentUser)updateMyPresence(false);});
