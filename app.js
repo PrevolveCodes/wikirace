@@ -258,6 +258,10 @@ function startTimer() {
   state.timerInterval = window.setInterval(() => {
     state.seconds = Math.floor((Date.now() - state.startedAt) / 1000);
     $("timer").textContent = formatTime(state.seconds);
+    if(state.mode==="multiplayer" && state.seconds%2===0 && state.seconds!==lastRoomProgressSecond && !multiplayerLocalFinished && !multiplayerEnded){
+      lastRoomProgressSecond=state.seconds;
+      updateRoomPlayer(false);
+    }
   }, 250);
 }
 
@@ -693,18 +697,29 @@ async function openDailyHistory() {
 }
 
 function finishRace() {
+  if(state.mode==="multiplayer" && multiplayerLocalFinished)return;
   stopTimer();
   state.loading = false;
+  if(state.mode==="multiplayer")multiplayerLocalFinished=true;
   const bestKey = "wikirace-best-" + (state.mode === "daily" ? "daily" : state.difficulty);
   const oldBest = Number(localStorage.getItem(bestKey));
   if (!oldBest || state.seconds < oldBest) localStorage.setItem(bestKey, String(state.seconds));
+  $("winScreen").querySelector(".eyebrow").textContent="RACE COMPLETE";
+  $("winScreen").querySelector(".win-card h1").textContent="You did it!";
+  $("winScreen").querySelector(".win-copy").innerHTML='You navigated from <strong id="winStart">Start</strong> to <strong id="winGoal">Finish</strong>.';
   $("winStart").textContent = state.start;
   $("winGoal").textContent = state.goal;
   $("finalTime").textContent = formatTime(state.seconds);
   $("finalClicks").textContent = String(state.clicks);
+  $("multiplayerResults")?.classList.toggle("hidden",state.mode!=="multiplayer");
+  $("playAgainButton").classList.toggle("hidden",state.mode==="multiplayer");
+  $("homeButton").textContent=state.mode==="multiplayer"?"Leave game":"Back to home";
   showScreen("win");
   launchConfetti();
-  updateRoomPlayer(true);
+  if(state.mode==="multiplayer"){
+    updateRoomPlayer(true);
+    renderMultiplayerResults();
+  }
   if(currentUser) {
     const userId=currentUser.uid;
     const raceSeconds=state.seconds;
@@ -724,7 +739,97 @@ function finishRace() {
   }
   if(state.mode==="daily")saveDailyResult();
 }
-
+function closeOpponentFinishedPrompt(){
+  $("opponentFinishedModal").classList.add("hidden");
+}
+function showOpponentFinishedPrompt(opponent){
+  if(!opponent||multiplayerLocalFinished||multiplayerEnded||opponentFinishPromptedFor===opponent.uid)return;
+  opponentFinishPromptedFor=opponent.uid;
+  $("opponentFinishedMessage").textContent=(opponent.username||"Your opponent")+" reached the destination. Do you want to keep racing?";
+  $("opponentFinishedModal").classList.remove("hidden");
+}
+async function endMultiplayerRace(){
+  if(!activeRoom||!currentUser||multiplayerLocalFinished||multiplayerEnded)return;
+  multiplayerEnded=true;
+  stopTimer();
+  closeOpponentFinishedPrompt();
+  await updateRoomPlayer(false,{ended:true,endedAt:firebase.firestore.FieldValue.serverTimestamp()});
+  showMultiplayerEndedResults("You ended the race.");
+}
+function showMultiplayerEndedResults(message){
+  stopTimer();
+  state.loading=false;
+  $("winStart").textContent=state.start;
+  $("winGoal").textContent=state.goal;
+  $("finalTime").textContent=formatTime(state.seconds);
+  $("finalClicks").textContent=String(state.clicks);
+  $("multiplayerResults")?.classList.remove("hidden");
+  $("playAgainButton").classList.add("hidden");
+  $("homeButton").textContent="Leave game";
+  $("winScreen").querySelector(".eyebrow").textContent="RACE ENDED";
+  $("winScreen").querySelector(".win-card h1").textContent="Race ended";
+  $("winScreen").querySelector(".win-copy").textContent=message;
+  showScreen("win");
+  renderMultiplayerResults();
+}
+function renderMultiplayerResults(){
+  const panel=$("multiplayerResults"),list=$("multiplayerResultsList");
+  if(!panel||!list||state.mode!=="multiplayer")return;
+  panel.classList.remove("hidden");
+  list.replaceChildren();
+  const players=window.roomPlayers||[];
+  const finished=players.filter(p=>p.finished).sort((a,b)=>(a.finishedAt?.toMillis?.()||Infinity)-(b.finishedAt?.toMillis?.()||Infinity));
+  const firstUid=finished[0]?.uid;
+  players.forEach(player=>{
+    const row=document.createElement("div");row.className="multiplayer-result-row";
+    const identity=document.createElement("div");identity.className="multiplayer-result-identity";
+    const name=document.createElement("strong");name.textContent=player.username||"Player";
+    const status=document.createElement("span");
+    const presence=roomPresenceStates.get(player.uid);
+    let label=player.finished?(player.uid===firstUid?"Finished first":"Finished"):player.ended?"Ended":(presence===false?"Disconnected":"Still racing");
+    status.textContent=label;
+    identity.append(name,status);
+    const stats=document.createElement("div");stats.className="multiplayer-result-stats";
+    const current=document.createElement("span");current.textContent=player.finished?"Destination reached":player.ended?"Race ended":"At: "+(player.current||"Starting");
+    const score=document.createElement("span");score.textContent=(Number(player.clicks||0))+" clicks · "+formatTime(Number(player.seconds||0));
+    stats.append(current,score);row.append(identity,stats);list.appendChild(row);
+  });
+  const allDone=players.length>=2&&players.every(p=>p.finished||p.ended);
+  const allRequested=players.length>=2&&players.every(p=>p.rematch===true);
+  const me=players.find(p=>p.uid===currentUser?.uid);
+  $("requestRematchButton").disabled=!allDone||allRequested||!!me?.rematch;
+  $("requestRematchButton").textContent=allRequested?"Starting rematch…":(me?.rematch?"Rematch requested":"Request rematch");
+  $("rematchStatus").textContent=!allDone?"Waiting for the other player to finish or end the race.":allRequested?"Both players requested a rematch.":(players.some(p=>p.rematch&&p.uid!==currentUser?.uid)?"Your opponent requested a rematch.":"When both players request a rematch, a new waiting room will open.");
+}
+async function requestRoomRematch(){
+  if(!activeRoom||!currentUser)return;
+  const players=window.roomPlayers||[];
+  if(players.length<2||!players.every(p=>p.finished||p.ended))return;
+  try{await activeRoomRef().collection("players").doc(currentUser.uid).update({rematch:true});}
+  catch(error){setToast(authError(error));}
+}
+async function maybeStartRoomRematch(players){
+  if(!activeRoom||activeRoom.hostUid!==currentUser?.uid||activeRoom.status!=="racing"||players.length<2||!players.every(p=>p.rematch===true))return;
+  try{await activeRoomRef().update({status:"waiting",startedAt:null,start:"",goal:"",rematchAt:firebase.firestore.FieldValue.serverTimestamp()});}
+  catch(error){setToast(authError(error));}
+}
+async function resetPlayerForRematch(){
+  if(rematchResetInProgress||!activeRoom||!currentUser)return;
+  rematchResetInProgress=true;
+  try{
+    await activeRoomRef().collection("players").doc(currentUser.uid).update({ready:false,finished:false,ended:false,rematch:false,clicks:0,seconds:0,current:"",finishedAt:firebase.firestore.FieldValue.delete(),endedAt:firebase.firestore.FieldValue.delete()});
+    multiplayerLocalFinished=false;multiplayerEnded=false;opponentFinishPromptedFor="";lastRoomProgressSecond=-1;
+    $("multiplayerResults").classList.add("hidden");
+    $("winScreen").querySelector(".eyebrow").textContent="RACE COMPLETE";
+    $("winScreen").querySelector(".win-card h1").textContent="You did it!";
+    $("winScreen").querySelector(".win-copy").innerHTML='You navigated from <strong id="winStart">Start</strong> to <strong id="winGoal">Finish</strong>.';
+    $("playAgainButton").classList.remove("hidden");
+    $("homeButton").textContent="Leave game";
+    showScreen("home");
+    roomPanel("Waiting for the rematch",window.roomPlayers);
+  }catch(error){setToast(authError(error));}
+  finally{rematchResetInProgress=false;}
+}
 
 async function showRaceCountdown(startedAt=null){
   let overlay=$("raceCountdown");
@@ -833,7 +938,10 @@ $("restartButton").addEventListener("click", () => newRoute().catch(error => set
 $("previousButton").addEventListener("click", goBackArticle);
 $("quitButton").addEventListener("click", leaveRace);
 $("playAgainButton").addEventListener("click", () => { showScreen("home"); beginRace(); });
-$("homeButton").addEventListener("click", () => { showScreen("home"); });
+$("homeButton").addEventListener("click", () => { if(activeRoomCode)leaveRoom(); showScreen("home"); });
+$("continueRaceButton").addEventListener("click",closeOpponentFinishedPrompt);
+$("endRaceButton").addEventListener("click",endMultiplayerRace);
+$("requestRematchButton").addEventListener("click",requestRoomRematch);
 $("homeLink").addEventListener("click", event => { event.preventDefault(); leaveRace(); });
 $("helpButton").addEventListener("click", () => $("helpModal").classList.remove("hidden"));
 $("closeHelp").addEventListener("click", () => $("helpModal").classList.add("hidden"));
@@ -904,6 +1012,13 @@ let friendPresenceUnsubs = [];
 let friendPresenceStates = new Map();
 let friendPresenceRefreshTimer = null;
 let roomLaunchKey = "";
+let multiplayerLocalFinished = false;
+let multiplayerEnded = false;
+let opponentFinishPromptedFor = "";
+let lastRoomProgressSecond = -1;
+let roomPresenceUnsubs = new Map();
+let roomPresenceStates = new Map();
+let rematchResetInProgress = false;
 window.roomPlayers = [];
 
 function authError(error) {
@@ -1218,7 +1333,7 @@ function listenForGameInvites(){
   },error=>setToast(authError(error)));
 }
 
-function detachRoomListeners(){if(roomUnsubscribe)roomUnsubscribe();if(playersUnsubscribe)playersUnsubscribe();if(chatUnsubscribe)chatUnsubscribe();roomUnsubscribe=null;playersUnsubscribe=null;chatUnsubscribe=null;$("multiplayerChat")?.classList.add("hidden");$("chatLauncher")?.classList.add("hidden");}
+function detachRoomListeners(){if(roomUnsubscribe)roomUnsubscribe();if(playersUnsubscribe)playersUnsubscribe();if(chatUnsubscribe)chatUnsubscribe();roomUnsubscribe=null;playersUnsubscribe=null;chatUnsubscribe=null;for(const unsubscribe of roomPresenceUnsubs.values())unsubscribe();roomPresenceUnsubs.clear();roomPresenceStates.clear();$("multiplayerChat")?.classList.add("hidden");$("chatLauncher")?.classList.add("hidden");closeOpponentFinishedPrompt();}
 function makeRoomCode(){const chars="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";let s="";for(let i=0;i<6;i++)s+=chars[Math.floor(Math.random()*chars.length)];return s;}
 async function username(){const snap=await db.collection("users").doc(currentUser.uid).get();return snap.data()?.username || currentUser.displayName || (currentUser.email||"Player").split("@")[0];}
 function roomPanel(message,players=[]){
@@ -1251,19 +1366,59 @@ async function listenRoom(id,code){
   detachRoomListeners();activeRoomCode=code;
   roomUnsubscribe=db.collection("rooms").doc(id).onSnapshot(async snap=>{
     if(!snap.exists){setToast("This room no longer exists.");detachRoomListeners();activeRoom=null;activeRoomCode="";return;}
+    const previousStatus=activeRoom?.status;
     activeRoom={id:snap.id,...snap.data()};
     if(activeRoom.status==="racing"){
       const key=activeRoom.id+":"+(activeRoom.startedAt?.toMillis?.()||"started");
-      if(roomLaunchKey!==key){roomLaunchKey=key;await launchSharedRace(activeRoom);}
-    } else roomPanel("Waiting for the host to start",window.roomPlayers);
+      if(roomLaunchKey!==key){
+        roomLaunchKey=key;multiplayerLocalFinished=false;multiplayerEnded=false;opponentFinishPromptedFor="";lastRoomProgressSecond=-1;
+        await launchSharedRace(activeRoom);
+      }
+    } else {
+      if(previousStatus==="racing"&&roomLaunchKey.startsWith(activeRoom.id+":")){
+        roomLaunchKey="";
+        await resetPlayerForRematch();
+      } else roomPanel("Waiting for the host to start",window.roomPlayers);
+    }
   },e=>setToast(authError(e)));
   playersUnsubscribe=db.collection("rooms").doc(id).collection("players").onSnapshot(s=>{
     window.roomPlayers=s.docs.map(d=>d.data());
+    syncRoomPresence(window.roomPlayers);
     if(activeRoom?.status==="waiting")roomPanel("Waiting for players",window.roomPlayers);
+    if(activeRoom?.status==="racing"){handleRoomPlayersUpdate();maybeStartRoomRematch(window.roomPlayers);}
   });
   roomPanel("Waiting for players",window.roomPlayers);
   listenRoomChat(id);
 }
+function syncRoomPresence(players){
+  const ids=new Set(players.map(p=>p.uid).filter(uid=>uid&&uid!==currentUser?.uid));
+  for(const [uid,unsubscribe] of roomPresenceUnsubs){
+    if(!ids.has(uid)){unsubscribe();roomPresenceUnsubs.delete(uid);roomPresenceStates.delete(uid);}
+  }
+  ids.forEach(uid=>{
+    if(roomPresenceUnsubs.has(uid))return;
+    const unsubscribe=db.collection("presence").doc(uid).onSnapshot(snapshot=>{
+      const data=snapshot.data();
+      const lastSeen=data?.lastSeen?.toMillis?.()||0;
+      roomPresenceStates.set(uid,!!data?.online&&(!lastSeen||Date.now()-lastSeen<120000));
+      if(screens.win.classList.contains("active"))renderMultiplayerResults();
+    },()=>{roomPresenceStates.set(uid,false);if(screens.win.classList.contains("active"))renderMultiplayerResults();});
+    roomPresenceUnsubs.set(uid,unsubscribe);
+  });
+}
+function handleRoomPlayersUpdate(){
+  const players=window.roomPlayers||[];
+  const opponent=players.find(p=>p.uid!==currentUser?.uid);
+  if(!opponent)return;
+  if(opponent.finished&&!multiplayerLocalFinished&&!multiplayerEnded)showOpponentFinishedPrompt(opponent);
+  if(opponent.ended&&!multiplayerLocalFinished&&!multiplayerEnded){
+    multiplayerEnded=true;
+    showMultiplayerEndedResults((opponent.username||"Your opponent")+" ended the race.");
+    updateRoomPlayer(false,{ended:true,endedAt:firebase.firestore.FieldValue.serverTimestamp()});
+  }
+  if(screens.win.classList.contains("active"))renderMultiplayerResults();
+}
+
 async function createRoom(){
   if(!currentUser)return authMode("signin");
   try{
@@ -1346,6 +1501,7 @@ $("chatClose").addEventListener("click",()=>setRoomChatOpen(false));
 async function launchSharedRace(room){
   stopTimer();if(state.requestController)state.requestController.abort();
   state.mode="multiplayer";state.dailyDate=null;
+  multiplayerLocalFinished=false;multiplayerEnded=false;opponentFinishPromptedFor="";lastRoomProgressSecond=-1;closeOpponentFinishedPrompt();
   state.clicks=0;state.seconds=0;state.loading=false;state.difficulty=room.difficulty||"medium";
   state.start=room.start;state.goal=room.goal;state.current=room.start;state.history=[];state.historyIndex=-1;
    Object.assign(raceOptions, room.options || {});
@@ -1357,13 +1513,19 @@ async function launchSharedRace(room){
   updateStats();showScreen("game");await showRaceCountdown(room.startedAt);startTimer();await loadArticle(room.start,false);
   roomPanel("Race in progress",window.roomPlayers);
 }
-async function updateRoomPlayer(finished=false){
+async function updateRoomPlayer(finished=false,extra={}){
   if(!activeRoom || activeRoom.status!=="racing" || !currentUser)return;
-  try{await db.collection("rooms").doc(activeRoom.id).collection("players").doc(currentUser.uid).set({uid:currentUser.uid,username:await username(),clicks:state.clicks,seconds:state.seconds,current:state.current||"",finished,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});}catch(e){console.warn(e);}
+  if((multiplayerLocalFinished||multiplayerEnded)&&!finished&&!Object.keys(extra).length)return;
+  try{
+    const data={uid:currentUser.uid,username:currentUsername||await username(),clicks:state.clicks,seconds:state.seconds,current:state.current||"",finished,...extra,updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
+    if(finished)data.finishedAt=firebase.firestore.FieldValue.serverTimestamp();
+    await activeRoomRef().collection("players").doc(currentUser.uid).set(data,{merge:true});
+  }catch(e){console.warn(e);}
 }
+
 async function leaveRoom(){
   if(activeRoom&&currentUser){try{await db.collection("rooms").doc(activeRoom.id).collection("players").doc(currentUser.uid).delete();}catch(e){}}
-  detachRoomListeners();activeRoom=null;activeRoomCode="";roomLaunchKey="";window.roomPlayers=[];
+  detachRoomListeners();activeRoom=null;activeRoomCode="";roomLaunchKey="";window.roomPlayers=[];multiplayerLocalFinished=false;multiplayerEnded=false;
   if(chatUnsubscribe){chatUnsubscribe();chatUnsubscribe=null;}
   $("chatLauncher").classList.add("hidden");$("multiplayerChat").classList.add("hidden");$("multiplayerChat").classList.remove("chat-open");
   $("roomStatus").classList.add("hidden");setToast("You left the game.");
