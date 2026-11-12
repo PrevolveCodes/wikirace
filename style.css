@@ -223,3 +223,22 @@ html[data-theme="dark"] .toast{background:#27292b;border-color:var(--line);color
  .friend-add-row{align-items:stretch}.friend-add-row .secondary-button{padding:8px}
  .hero-foot{display:none}
 }
+
+
+/* Wikipedia donation popup */
+.donation-popup{position:fixed;left:50%;bottom:20px;z-index:25;width:min(720px,calc(100% - 32px));display:flex;align-items:center;gap:18px;padding:16px 52px 16px 19px;transform:translateX(-50%);border:1px solid var(--line);border-radius:5px;background:var(--surface);box-shadow:0 8px 30px #20212226;color:var(--text)}
+.donation-copy{display:flex;flex:1;flex-direction:column;gap:4px;min-width:0}
+.donation-copy strong{font-size:14px;font-weight:700}
+.donation-copy span{color:var(--muted);font-size:12px;line-height:1.45}
+.donation-button{flex:0 0 auto;padding:10px 13px;border:1px solid #36c;border-radius:3px;background:#36c;color:#fff;text-decoration:none;font-size:12px;font-weight:700}
+.donation-button:hover{background:#2a4b8d}
+.donation-close{position:absolute;top:7px;right:10px;width:28px;height:28px;border:0;border-radius:3px;background:transparent;color:var(--muted);font-size:22px;line-height:1}
+.donation-close:hover{background:var(--surface-soft);color:var(--text)}
+html[data-theme="dark"] .donation-popup{background:var(--surface);border-color:var(--line);color:var(--text);box-shadow:0 8px 30px #0006}
+html[data-theme="dark"] .donation-button{background:#8ab4f8;border-color:#8ab4f8;color:#202122}
+html[data-theme="dark"] .donation-button:hover{background:#a4c7fa}
+@media(max-width:560px){
+ .donation-popup{bottom:10px;align-items:flex-start;flex-wrap:wrap;gap:10px;padding:14px 42px 14px 14px}
+ .donation-copy{flex-basis:100%}
+ .donation-button{padding:9px 11px}
+}
