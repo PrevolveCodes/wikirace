@@ -247,7 +247,7 @@ async function chooseRoute() {
 function updateStats() {
   $("timer").textContent = formatTime(state.seconds);
   $("clickCount").textContent = String(state.clicks);
-  const best = localStorage.getItem("wikirace-best-" + state.difficulty);
+  const best = localStorage.getItem("wikirace-best-" + (state.mode === "daily" ? "daily" : state.difficulty));
   $("bestScore").textContent = best || "—";
 }
 
@@ -673,7 +673,7 @@ async function openDailyHistory() {
 function finishRace() {
   stopTimer();
   state.loading = false;
-  const bestKey = "wikirace-best-" + state.difficulty;
+  const bestKey = "wikirace-best-" + (state.mode === "daily" ? "daily" : state.difficulty);
   const oldBest = Number(localStorage.getItem(bestKey));
   if (!oldBest || state.seconds < oldBest) localStorage.setItem(bestKey, String(state.seconds));
   $("winStart").textContent = state.start;
@@ -879,7 +879,7 @@ async function profileFor(user) {
     totalDailyRuns:Number(profile.totalDailyRuns||0),
     streakBadges:profile.streakBadges||[],
     profileFrame:profile.profileFrame||"none"
-  },{merge:true});
+  },{merge:true}).catch(error=>console.warn("Could not sync public profile:",error));
   const key = usernameKey(currentUsername);
   if(key) {
     const indexRef=db.collection("usernames").doc(key), indexSnap=await indexRef.get();
