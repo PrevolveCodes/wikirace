@@ -323,3 +323,5 @@ html[data-theme="dark"] .daily-route,html[data-theme="dark"] .leaderboard-list l
  .daily-route strong{font-size:15px}
  .daily-history-modal{padding:25px 18px}
 }
+
+.profile-freeze-note{margin:10px 0 0;color:var(--muted);font-size:10px;line-height:1.5}
