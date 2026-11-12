@@ -16,6 +16,12 @@ service cloud.firestore {
       allow delete: if signedIn() && resource.data.uid == request.auth.uid;
     }
 
+    match /presence/{userId} {
+      allow read: if signedIn();
+      allow create, update: if signedIn() && request.auth.uid == userId;
+      allow delete: if signedIn() && request.auth.uid == userId;
+    }
+
     match /friendRequests/{requestId} {
       allow read: if signedIn()
                   && (resource.data.fromUid == request.auth.uid
