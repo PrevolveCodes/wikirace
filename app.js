@@ -344,6 +344,32 @@ function cleanAndPrepareArticle(html, title) {
   return { wrapper, stylesheets };
 }
 
+
+const articleHtmlCache = new Map();
+const articleHtmlPending = new Map();
+async function getArticleHtml(title){
+  const key=normaliseTitle(title);
+  if(articleHtmlCache.has(key))return articleHtmlCache.get(key);
+  if(articleHtmlPending.has(key))return articleHtmlPending.get(key);
+  const request=(async()=>{
+    const url=REST+encodeURIComponent(title.replace(/ /g,"_"))+"/html";
+    const response=await fetch(url,{headers:{"Accept":"text/html; charset=utf-8"}});
+    if(!response.ok)throw new Error(response.status===404?"That article could not be found.":"Wikipedia returned an error. Please try another link.");
+    const html=await response.text();
+    articleHtmlCache.set(key,html);
+    while(articleHtmlCache.size>18)articleHtmlCache.delete(articleHtmlCache.keys().next().value);
+    return html;
+  })();
+  articleHtmlPending.set(key,request);
+  try{return await request;}finally{articleHtmlPending.delete(key);}
+}
+function prefetchArticle(title){
+  if(!title)return;
+  const key=normaliseTitle(title);
+  if(articleHtmlCache.has(key)||articleHtmlPending.has(key))return;
+  getArticleHtml(title).catch(()=>{});
+}
+
 async function loadArticle(title, countClick = false) {
   if (state.loading) return;
   if (state.requestController) state.requestController.abort();
@@ -364,13 +390,8 @@ updateBackButton();
   }
 
   try {
-    const url = REST + encodeURIComponent(title.replace(/ /g, "_")) + "/html";
-    const response = await fetch(url, {
-      signal: state.requestController.signal,
-      headers: { "Accept": "text/html; charset=utf-8" }
-    });
-    if (!response.ok) throw new Error(response.status === 404 ? "That article could not be found." : "Wikipedia returned an error. Please try another link.");
-    const html = await response.text();
+    const html = await getArticleHtml(title);
+    if(state.requestController?.signal.aborted)return;
     const prepared = cleanAndPrepareArticle(html, title);
     const frame = document.createElement("iframe");
     frame.className = "wiki-article-frame";
@@ -378,7 +399,7 @@ updateBackButton();
     frame.setAttribute("sandbox", "allow-scripts allow-popups");
     const stylesheetLinks = prepared.stylesheets.map(href => '<link rel="stylesheet" href="' + href.replace(/&/g, "&amp;").replace(/"/g, "&quot;") + '">').join("");
     const articleMarkup = prepared.wrapper.outerHTML;
-    frame.srcdoc = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' + stylesheetLinks + '<style>html,body{margin:0;padding:0;background:#fff;color:#202122;font-family:Arial,Helvetica,sans-serif}body{padding:24px clamp(18px,4vw,48px) 48px;box-sizing:border-box}.mw-body{max-width:none!important;margin:0 auto!important}.mw-body-content{font-family:Arial,Helvetica,sans-serif}img{max-width:100%;height:auto}</style></head><body>' + articleMarkup + '<script>function reportHeight(){parent.postMessage({type:"wikirace-height",height:Math.ceil(document.documentElement.scrollHeight)},"*")}const heightObserver=new ResizeObserver(reportHeight);heightObserver.observe(document.documentElement);window.addEventListener("load",reportHeight);document.addEventListener("click",function(e){const a=e.target.closest("a[data-wiki-title]");if(a){e.preventDefault();parent.postMessage({type:"wikirace-navigation",title:a.dataset.wikiTitle},"*");}});reportHeight();' +
+    frame.srcdoc = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' + stylesheetLinks + '<style>html,body{margin:0;padding:0;background:#fff;color:#202122;font-family:Arial,Helvetica,sans-serif}body{padding:24px clamp(18px,4vw,48px) 48px;box-sizing:border-box}.mw-body{max-width:none!important;margin:0 auto!important}.mw-body-content{font-family:Arial,Helvetica,sans-serif}img{max-width:100%;height:auto}</style></head><body>' + articleMarkup + '<script>function reportHeight(){parent.postMessage({type:"wikirace-height",height:Math.ceil(document.documentElement.scrollHeight)},"*")}const heightObserver=new ResizeObserver(reportHeight);heightObserver.observe(document.documentElement);window.addEventListener("load",reportHeight);document.addEventListener("pointerover",function(e){const a=e.target.closest("a[data-wiki-title]");if(a&&!a.dataset.prefetched){a.dataset.prefetched="1";parent.postMessage({type:"wikirace-prefetch",title:a.dataset.wikiTitle},"*");}});document.addEventListener("click",function(e){const a=e.target.closest("a[data-wiki-title]");if(a){e.preventDefault();parent.postMessage({type:"wikirace-navigation",title:a.dataset.wikiTitle},"*");}});reportHeight();' +
       (raceOptions.blockFind ? 'document.addEventListener("keydown",function(e){var k=e.key.toLowerCase();if(((e.ctrlKey||e.metaKey)&&(k==="f"||k==="g"))||k==="f3"){e.preventDefault();e.stopImmediatePropagation();}},true);' : '') +
       (raceOptions.blockBrowserNavigation ? 'document.addEventListener("keydown",function(e){var k=e.key.toLowerCase();if((e.altKey&&(k==="arrowleft"||k==="arrowright"))||(k==="backspace"&&!/input|textarea|select/i.test(e.target.tagName))){e.preventDefault();e.stopImmediatePropagation();}},true);' : '') +
       '</script></body></html>';
@@ -840,6 +861,7 @@ window.addEventListener("message", async event => {
     if (frame && Number.isFinite(height)) frame.style.height = Math.max(500, height) + "px";
     return;
   }
+  if (event.data?.type === "wikirace-prefetch") { prefetchArticle(String(event.data.title || "")); return; }
   if (event.data?.type !== "wikirace-navigation") return;
   const requestedTitle = String(event.data.title || "");
   if (!requestedTitle || state.loading) return;
