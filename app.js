@@ -704,6 +704,34 @@ function finishRace() {
   if(state.mode==="daily")saveDailyResult();
 }
 
+
+async function showRaceCountdown(startedAt=null){
+  let overlay=$("raceCountdown");
+  if(!overlay){
+    overlay=document.createElement("div");
+    overlay.id="raceCountdown";
+    overlay.className="race-countdown hidden";
+    overlay.setAttribute("aria-live","assertive");
+    overlay.setAttribute("aria-label","Race starting countdown");
+    const label=document.createElement("span");
+    label.id="raceCountdownText";
+    overlay.appendChild(label);
+    document.body.appendChild(overlay);
+  }
+  const label=$("raceCountdownText");
+  const startMs=startedAt?.toMillis?.()||Date.now();
+  overlay.classList.remove("hidden");
+  let previous="";
+  while(Date.now()-startMs<4000){
+    const elapsed=Math.max(0,Date.now()-startMs);
+    const index=Math.min(3,Math.floor(elapsed/1000));
+    const value=["3","2","1","GO!"][index];
+    if(value!==previous){label.textContent=value;previous=value;}
+    await new Promise(resolve=>setTimeout(resolve,40));
+  }
+  overlay.classList.add("hidden");
+}
+
 async function beginRace() {
   state.mode="solo";
   state.dailyDate=null;
@@ -731,6 +759,7 @@ async function beginRace() {
     $("articleError").classList.add("hidden");
     updateStats();
     showScreen("game");
+    await showRaceCountdown();
     startTimer();
     await loadArticle(start, false);
   } catch (error) {
@@ -1303,7 +1332,7 @@ async function launchSharedRace(room){
    backEnabled = room.options?.backEnabled !== false;
    backEnabledInput.checked = backEnabled;
   recordArticleVisit(room.start);$("startTitle").textContent=room.start;$("goalTitle").textContent=room.goal;$("currentTitle").textContent=room.start;
-  updateStats();showScreen("game");startTimer();await loadArticle(room.start,false);
+  updateStats();showScreen("game");await showRaceCountdown(room.startedAt);startTimer();await loadArticle(room.start,false);
   roomPanel("Race in progress",window.roomPlayers);
 }
 async function updateRoomPlayer(finished=false){
