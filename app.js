@@ -744,7 +744,7 @@ function showGameInvite(doc){
       await roomRef.collection("players").doc(currentUser.uid).set({
         uid:currentUser.uid,username:currentUsername||await username(),clicks:0,seconds:0,current:"",finished:false
       });
-      await roomRef.collection("gameInvites").doc(doc.id).delete();
+      await db.collection("gameInvites").doc(doc.id).delete();
       card.remove();
       await listenRoom(invite.roomId,invite.roomCode);
     }catch(error){setToast(error.message||authError(error));join.disabled=false;}
