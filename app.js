@@ -843,6 +843,8 @@ let currentUser = null;
 let currentUsername = "";
 let activeRoom = null;
 let activeRoomCode = "";
+let chatUnsubscribe = null;
+let chatSending = false;
 let roomUnsubscribe = null;
 let playersUnsubscribe = null;
 let inviteUnsubscribe = null;
@@ -1165,7 +1167,7 @@ function listenForGameInvites(){
   },error=>setToast(authError(error)));
 }
 
-function detachRoomListeners(){if(roomUnsubscribe)roomUnsubscribe();if(playersUnsubscribe)playersUnsubscribe();roomUnsubscribe=null;playersUnsubscribe=null;}
+function detachRoomListeners(){if(roomUnsubscribe)roomUnsubscribe();if(playersUnsubscribe)playersUnsubscribe();if(chatUnsubscribe)chatUnsubscribe();roomUnsubscribe=null;playersUnsubscribe=null;chatUnsubscribe=null;$("multiplayerChat")?.classList.add("hidden");}
 function makeRoomCode(){const chars="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";let s="";for(let i=0;i<6;i++)s+=chars[Math.floor(Math.random()*chars.length)];return s;}
 async function username(){const snap=await db.collection("users").doc(currentUser.uid).get();return snap.data()?.username || currentUser.displayName || (currentUser.email||"Player").split("@")[0];}
 function roomPanel(message,players=[]){
@@ -1221,6 +1223,45 @@ async function startRoomRace(){
     await db.collection("rooms").doc(activeRoom.id).update({start:route[0],goal:route[1],difficulty:state.difficulty,options:{blockFind:raceOptions.blockFind,blockBrowserNavigation:raceOptions.blockBrowserNavigation,backEnabled},status:"racing",startedAt:firebase.firestore.FieldValue.serverTimestamp()});
   }catch(e){setToast(authError(e));if(b)b.disabled=false;}
 }
+function renderRoomChat(messages){
+  const list=$("chatMessages");if(!list)return;
+  list.replaceChildren();
+  if(!messages.length){const empty=document.createElement("p");empty.className="chat-empty";empty.textContent="No messages yet. Say hello.";list.appendChild(empty);return;}
+  messages.forEach(message=>{
+    const row=document.createElement("div");row.className="chat-message";
+    if(message.uid===currentUser?.uid)row.classList.add("own");
+    const meta=document.createElement("div");meta.className="chat-message-meta";
+    const name=document.createElement("strong");name.textContent=message.username||"Player";
+    const time=document.createElement("span");const date=message.createdAt?.toDate?.();time.textContent=date?date.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}):"";
+    const body=document.createElement("p");body.textContent=message.text||"";
+    meta.append(name,time);row.append(meta,body);list.appendChild(row);
+  });
+  list.scrollTop=list.scrollHeight;
+}
+function listenRoomChat(roomId){
+  if(chatUnsubscribe)chatUnsubscribe();
+  $("multiplayerChat").classList.remove("hidden");
+  $("chatRoomLabel").textContent="GAME "+activeRoomCode;
+  chatUnsubscribe=db.collection("rooms").doc(roomId).collection("chat").orderBy("createdAt","asc").limitToLast(100).onSnapshot(snapshot=>{
+    renderRoomChat(snapshot.docs.map(doc=>doc.data()));
+  },error=>{console.warn("Chat listener failed:",error);setToast("Chat could not load. Check the Firestore rules.");});
+}
+async function sendRoomChat(event){
+  event.preventDefault();
+  const input=$("chatInput"),message=input.value.trim();
+  if(!message||chatSending||!activeRoom||activeRoom.status!=="racing"||!currentUser)return;
+  chatSending=true;$("chatSendButton").disabled=true;
+  try{
+    await db.collection("rooms").doc(activeRoom.id).collection("chat").add({
+      uid:currentUser.uid,username:await username(),text:message.slice(0,300),
+      createdAt:firebase.firestore.FieldValue.serverTimestamp()
+    });
+    input.value="";
+  }catch(error){setToast(authError(error));}
+  finally{chatSending=false;$("chatSendButton").disabled=false;input.focus();}
+}
+$("chatForm").addEventListener("submit",sendRoomChat);
+
 async function launchSharedRace(room){
   stopTimer();if(state.requestController)state.requestController.abort();
   state.mode="multiplayer";state.dailyDate=null;
@@ -1234,6 +1275,7 @@ async function launchSharedRace(room){
   recordArticleVisit(room.start);$("startTitle").textContent=room.start;$("goalTitle").textContent=room.goal;$("currentTitle").textContent=room.start;
   updateStats();showScreen("game");startTimer();await loadArticle(room.start,false);
   roomPanel("Race in progress",window.roomPlayers);
+  listenRoomChat(room.id);
 }
 async function updateRoomPlayer(finished=false){
   if(!activeRoom || activeRoom.status!=="racing" || !currentUser)return;
