@@ -576,14 +576,16 @@ async function saveDailyResult() {
   if(state.mode!=="daily"||state.dailySubmitted||!currentUser||!state.dailyDate)return;
   state.dailySubmitted=true;
   const dateKey=state.dailyDate;
-  const resultRef=db.collection("dailyRuns").doc(dateKey).collection("results").doc(currentUser.uid);
-  const userRef=db.collection("users").doc(currentUser.uid);
-  const publicRef=db.collection("publicProfiles").doc(currentUser.uid);
+  const uid=currentUser.uid;
+  const score={clicks:score.clicks,seconds:score.seconds,start:score.start,goal:score.goal,username:currentUsername||"WikiRace player"};
+  const resultRef=db.collection("dailyRuns").doc(dateKey).collection("results").doc(uid);
+  const userRef=db.collection("users").doc(uid);
+  const publicRef=db.collection("publicProfiles").doc(uid);
   try {
     const outcome=await db.runTransaction(async transaction=>{
       const [resultSnap,userSnap]=await Promise.all([transaction.get(resultRef),transaction.get(userRef)]);
       const oldResult=resultSnap.exists?resultSnap.data():null;
-      const improved=!oldResult||state.clicks<oldResult.clicks||(state.clicks===oldResult.clicks&&state.seconds<oldResult.seconds);
+      const improved=!oldResult||score.clicks<oldResult.clicks||(score.clicks===oldResult.clicks&&score.seconds<oldResult.seconds);
       if(!improved)return {improved:false,profile:userSnap.data()||{}};
       const profile=userSnap.data()||{};
       const lastDate=profile.lastDailyDate||"";
@@ -610,24 +612,24 @@ async function saveDailyResult() {
       const frame=longest>=365?"diamond":longest>=100?"gold":longest>=60?"silver":longest>=30?"bronze":"none";
       const history=Array.isArray(profile.dailyHistory)?profile.dailyHistory.slice():[];
       const historyIndex=history.findIndex(item=>item.date===dateKey);
-      const historyItem={date:dateKey,start:state.start,goal:state.goal,clicks:state.clicks,seconds:state.seconds};
+      const historyItem={date:dateKey,start:score.start,goal:score.goal,clicks:score.clicks,seconds:score.seconds};
       if(historyIndex>=0)history[historyIndex]=historyItem;else history.push(historyItem);
       history.sort((a,b)=>b.date.localeCompare(a.date));
-      const bestDailyTime=profile.bestDailyTime==null?state.seconds:Math.min(Number(profile.bestDailyTime),state.seconds);
-      const bestDailyClicks=profile.bestDailyClicks==null?state.clicks:Math.min(Number(profile.bestDailyClicks),state.clicks);
+      const bestDailyTime=profile.bestDailyTime==null?score.seconds:Math.min(Number(profile.bestDailyTime),score.seconds);
+      const bestDailyClicks=profile.bestDailyClicks==null?score.clicks:Math.min(Number(profile.bestDailyClicks),score.clicks);
       const nextProfile={
         lastDailyDate:dateKey,currentStreak:current,longestStreak:longest,streakFreezes:freezes,
         totalDailyRuns:total,lastFreezeMilestone,streakBadges:badges,profileFrame:frame,
         bestDailyTime,bestDailyClicks,dailyHistory:history.slice(0,60)
       };
       transaction.set(resultRef,{
-        uid:currentUser.uid,date:dateKey,username:currentUsername||"WikiRace player",
-        start:state.start,goal:state.goal,clicks:state.clicks,seconds:state.seconds,
+        uid,date:dateKey,username:score.username,
+        start:score.start,goal:score.goal,clicks:score.clicks,seconds:score.seconds,
         completedAt:firebase.firestore.FieldValue.serverTimestamp()
       });
       transaction.set(userRef,nextProfile,{merge:true});
       transaction.set(publicRef,{
-        uid:currentUser.uid,username:currentUsername||"WikiRace player",
+        uid,username:score.username,
         currentStreak:current,longestStreak:longest,totalDailyRuns:total,
         streakBadges:badges,profileFrame:frame
       },{merge:true});
@@ -641,7 +643,6 @@ async function saveDailyResult() {
     }
     await Promise.all([loadDailyLeaderboard(dateKey),loadStreakLeaderboard()]);
   } catch(error) {
-    state.dailySubmitted=false;
     setToast("Your run finished, but its score could not be saved: "+authError(error));
   }
 }
@@ -684,15 +685,18 @@ function finishRace() {
   launchConfetti();
   updateRoomPlayer(true);
   if(currentUser) {
-    const profileRef=db.collection("users").doc(currentUser.uid);
+    const userId=currentUser.uid;
+    const raceSeconds=state.seconds;
+    const raceClicks=state.clicks;
+    const profileRef=db.collection("users").doc(userId);
     db.runTransaction(async transaction=>{
       const snapshot=await transaction.get(profileRef);
       const profile=snapshot.data()||{};
       transaction.set(profileRef,{
         races:Number(profile.races||0)+1,
         wins:Number(profile.wins||0)+1,
-        bestRaceTime:profile.bestRaceTime==null?state.seconds:Math.min(Number(profile.bestRaceTime),state.seconds),
-        fewestRaceClicks:profile.fewestRaceClicks==null?state.clicks:Math.min(Number(profile.fewestRaceClicks),state.clicks),
+        bestRaceTime:profile.bestRaceTime==null?raceSeconds:Math.min(Number(profile.bestRaceTime),raceSeconds),
+        fewestRaceClicks:profile.fewestRaceClicks==null?raceClicks:Math.min(Number(profile.fewestRaceClicks),raceClicks),
         lastRaceAt:firebase.firestore.FieldValue.serverTimestamp()
       },{merge:true});
     }).then(()=>profileRef.get()).then(snapshot=>renderProfileProgress(snapshot.data()||{})).catch(error=>console.warn("Could not update race records:",error));
