@@ -1248,19 +1248,6 @@ async function handleStartAction(){
   if(activeRoomCode){if(activeRoom?.hostUid===currentUser?.uid)await startRoomRace();else setToast("Waiting for the host to start the race.");return;}
   await beginRace();
 }
-document.querySelectorAll(".game-mode-tab").forEach(tab=>{
-  tab.addEventListener("click",()=>{
-    const mode=tab.dataset.gameMode;
-    document.querySelectorAll(".game-mode-tab").forEach(item=>{
-      const selected=item===tab;
-      item.classList.toggle("selected",selected);
-      item.setAttribute("aria-selected",String(selected));
-    });
-    $("soloModePanel").classList.toggle("hidden",mode!=="solo");
-    $("friendsModePanel").classList.toggle("hidden",mode!=="friends");
-  });
-});
-
 $("dailyRunButton").addEventListener("click",startDailyRun);
 $("dailyHistoryButton").addEventListener("click",openDailyHistory);
 $("dailyHistoryClose").addEventListener("click",()=>$("dailyHistoryModal").classList.add("hidden"));
