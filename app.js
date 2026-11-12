@@ -444,7 +444,7 @@ function dailyRouteForDate(dateKey) {
     let value = seed;
     value = Math.imul(value ^ (value >>> 15), value | 1);
     value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
-    return ((value ^ (value >>> 14) >>> 0) / 4294967296);
+    return (((value ^ (value >>> 14)) >>> 0) / 4294967296);
   };
   const startIndex = Math.floor(random() * pool.length);
   let goalIndex = Math.floor(random() * pool.length);
@@ -694,7 +694,7 @@ function finishRace() {
         fewestRaceClicks:profile.fewestRaceClicks==null?state.clicks:Math.min(Number(profile.fewestRaceClicks),state.clicks),
         lastRaceAt:firebase.firestore.FieldValue.serverTimestamp()
       },{merge:true});
-    }).catch(error=>console.warn("Could not update race records:",error));
+    }).then(()=>profileRef.get()).then(snapshot=>renderProfileProgress(snapshot.data()||{})).catch(error=>console.warn("Could not update race records:",error));
   }
   if(state.mode==="daily")saveDailyResult();
 }
@@ -896,6 +896,7 @@ auth.onAuthStateChanged(async user => {
   if (user) { try { await profileFor(user); listenForGameInvites(); startPresenceTracking(); } catch(e) { setToast(authError(e)); } }
   else { if(presenceHeartbeat)clearInterval(presenceHeartbeat); presenceHeartbeat=null; document.removeEventListener("visibilitychange",handlePresenceVisibility); stopFriendPresenceListeners(); if(inviteUnsubscribe)inviteUnsubscribe(); inviteUnsubscribe=null; $("gameInviteNotifications").replaceChildren(); detachRoomListeners(); activeRoom=null; activeRoomCode=""; $("roomStatus").classList.add("hidden"); }
   renderAccount();
+  loadDailyChallenge();
 });
 $("accountButton").addEventListener("click",()=>currentUser ? openFriends() : authMode("signin"));
 $("googleSignIn").addEventListener("click",async()=>{try{await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());}catch(e){setToast(authError(e));}});
