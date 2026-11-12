@@ -346,6 +346,12 @@ html[data-theme="dark"] .daily-route,html[data-theme="dark"] .leaderboard-list l
 .chat-compose{display:flex;gap:8px;margin-top:9px}
 .chat-compose input{flex:1;min-width:0;padding:10px 12px;border:1px solid var(--line);border-radius:3px;background:var(--surface);color:var(--text);font:inherit}
 .chat-compose button{flex-shrink:0}
+.room-ready-prompt{margin:12px 0 8px;color:var(--muted);font-size:12px;line-height:1.5}
+.room-ready-button{margin:0 0 12px}
+.room-ready-button.is-ready{border-color:var(--blue);color:var(--blue)}
+.room-player-list .player-ready{border-color:#4b9b68}
+.room-player-list .player-not-ready{opacity:.8}
+.room-start-button:disabled{opacity:.55;cursor:not-allowed}
 .chat-launcher{position:fixed;right:22px;bottom:22px;z-index:82;padding:11px 18px;border:1px solid var(--line);border-radius:22px;background:var(--blue);color:#fff;font-size:13px;font-weight:700;box-shadow:0 4px 18px #0003;cursor:pointer}
 .chat-unread{display:inline-flex;align-items:center;justify-content:center;min-width:17px;height:17px;margin-left:5px;border-radius:50%;background:#d33;color:#fff;font-size:10px}
 .multiplayer-chat.chat-open{position:fixed;right:22px;bottom:76px;z-index:81;width:min(360px,calc(100vw - 28px));margin:0;padding:14px;box-shadow:0 8px 32px #0004}
