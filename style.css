@@ -264,3 +264,62 @@ html[data-theme="dark"] .game-invite-notification{background:var(--surface);bord
 .race-rules .custom-route-heading{margin:0 0 2px}
 .race-rules .back-setting{margin:0;font-size:13px;color:var(--text)}
 @media(max-width:760px){.race-rules{grid-column:1}}
+
+
+/* Daily Run, streaks, and player records */
+.daily-panel{margin:0 auto 64px;padding:26px;border:1px solid var(--line);border-radius:4px;background:var(--surface)}
+.daily-panel-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.daily-panel-heading h2{margin:5px 0;font:400 29px Georgia,"Times New Roman",serif;color:var(--text)}
+.daily-panel-heading p{margin:0;color:var(--muted);font-size:12px}
+.daily-route{display:grid;grid-template-columns:minmax(0,1fr) 40px minmax(0,1fr);align-items:center;gap:14px;margin:23px 0;padding:19px;border:1px solid var(--line-soft);background:var(--surface-soft)}
+.daily-route div{display:flex;flex-direction:column;gap:7px;min-width:0}
+.daily-route div:last-child{text-align:right}
+.daily-route div span{color:var(--muted);font-size:10px;letter-spacing:1px}
+.daily-route strong{color:var(--text);font:400 18px Georgia,"Times New Roman",serif;overflow-wrap:anywhere}
+.daily-route-arrow{text-align:center;color:var(--blue);font-size:22px}
+.daily-stats{display:flex;gap:30px;margin:0 0 19px}
+.daily-stats div{display:flex;flex-direction:column;gap:3px}
+.daily-stats strong{font-size:20px;color:var(--text)}
+.daily-stats span{font-size:9px;letter-spacing:1px;color:var(--muted)}
+.daily-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.daily-actions .primary-button{width:auto;min-width:190px}
+.daily-actions>span{color:var(--muted);font-size:11px}
+.daily-leaderboards{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:27px;padding-top:22px;border-top:1px solid var(--line)}
+.daily-leaderboards h3{margin:0 0 12px;font:400 20px Georgia,"Times New Roman",serif;color:var(--text)}
+.leaderboard-list{display:flex;flex-direction:column;gap:7px;margin:0;padding:0;list-style:none}
+.leaderboard-list li{display:grid;grid-template-columns:24px minmax(0,1fr) auto;align-items:center;gap:8px;padding:9px 10px;border:1px solid var(--line-soft);background:var(--surface-soft);font-size:12px}
+.leaderboard-list li strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)}
+.board-rank{color:var(--muted);font-variant-numeric:tabular-nums}
+.board-score{color:var(--muted);font-size:11px;text-align:right}
+.leaderboard-list .board-empty{display:block;color:var(--muted);font-size:12px}
+.daily-history-modal{position:relative;width:min(100%,580px);max-height:min(85vh,760px);overflow-y:auto;padding:30px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--text)}
+.daily-history-modal h2{margin:8px 0 20px;font:400 28px Georgia,"Times New Roman",serif}
+.daily-history-list{display:flex;flex-direction:column;gap:8px}
+.history-row{display:flex;flex-direction:column;gap:5px;padding:12px;border:1px solid var(--line);background:var(--surface-soft)}
+.history-row strong{font-size:13px}.history-row span{font-size:12px;color:var(--text);overflow-wrap:anywhere}.history-row small{font-size:11px;color:var(--muted)}
+.profile-progress{margin:18px 0 12px;padding:14px;border:1px solid var(--line);border-radius:4px;background:var(--surface-soft)}
+.profile-progress.frame-bronze{border:2px solid #b87945}
+.profile-progress.frame-silver{border:2px solid #9ba8b7}
+.profile-progress.frame-gold{border:2px solid #c6a13b}
+.profile-progress.frame-diamond{border:2px solid #5bbbd1;box-shadow:0 0 0 2px #5bbbd122}
+.profile-progress-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.profile-progress-top>div{display:flex;flex-direction:column;gap:4px}
+.profile-progress-top strong{font-size:14px;color:var(--text)}
+.profile-frame-label{font-size:10px;color:var(--muted);border:1px solid var(--line);padding:5px 7px}
+.profile-stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:12px}
+.profile-stat-grid div{display:flex;flex-direction:column;gap:4px;padding:9px;border:1px solid var(--line);background:var(--surface)}
+.profile-stat-grid span{font-size:9px;color:var(--muted)}
+.profile-stat-grid strong{font-size:15px;color:var(--text)}
+.profile-badges{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.profile-badge{padding:5px 8px;border:1px solid var(--line);border-radius:2px;background:var(--surface);font-size:10px;color:var(--text)}
+.profile-empty{font-size:11px;color:var(--muted)}
+.profile-records{margin:11px 0 0;color:var(--muted);font-size:10px;line-height:1.5}
+html[data-theme="dark"] .daily-panel,html[data-theme="dark"] .daily-history-modal{background:var(--surface);border-color:var(--line);color:var(--text)}
+html[data-theme="dark"] .daily-route,html[data-theme="dark"] .leaderboard-list li,html[data-theme="dark"] .history-row{background:var(--surface-soft);border-color:var(--line)}
+@media(max-width:760px){
+ .daily-panel{padding:19px 15px;margin-bottom:40px}
+ .daily-leaderboards{grid-template-columns:1fr;gap:22px}
+ .daily-route{gap:8px;padding:14px 10px}
+ .daily-route strong{font-size:15px}
+ .daily-history-modal{padding:25px 18px}
+}
