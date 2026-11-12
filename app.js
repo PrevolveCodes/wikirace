@@ -542,7 +542,7 @@ async function loadDailyChallenge() {
   const dateKey=utcDateKey();
   const route=dailyRouteForDate(dateKey);
   $("dailyDate").textContent=dailyDateLabel(dateKey)+" · Resets at midnight UTC";
-  $("dailyStart").textContent=route[0];
+  $("dailyStartArticle").textContent=route[0];
   $("dailyGoal").textContent=route[1];
   $("dailyRunButton").textContent="Play today's run";
   await Promise.all([loadDailyLeaderboard(dateKey),loadStreakLeaderboard()]);
