@@ -577,7 +577,7 @@ async function saveDailyResult() {
   state.dailySubmitted=true;
   const dateKey=state.dailyDate;
   const uid=currentUser.uid;
-  const score={clicks:score.clicks,seconds:score.seconds,start:score.start,goal:score.goal,username:currentUsername||"WikiRace player"};
+  const score={clicks:state.clicks,seconds:state.seconds,start:state.start,goal:state.goal,username:currentUsername||"WikiRace player"};
   const resultRef=db.collection("dailyRuns").doc(dateKey).collection("results").doc(uid);
   const userRef=db.collection("users").doc(uid);
   const publicRef=db.collection("publicProfiles").doc(uid);
