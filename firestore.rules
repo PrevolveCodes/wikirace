@@ -32,6 +32,28 @@ service cloud.firestore {
       allow delete: if signedIn() && request.auth.uid == userId;
     }
 
+    match /publicProfiles/{userId} {
+      allow read: if signedIn();
+      allow create, update: if signedIn()
+                            && request.auth.uid == userId
+                            && request.resource.data.uid == request.auth.uid;
+      allow delete: if false;
+    }
+
+    match /dailyRuns/{date}/results/{userId} {
+      allow read: if signedIn();
+      allow create, update: if signedIn()
+                            && request.auth.uid == userId
+                            && request.resource.data.uid == request.auth.uid
+                            && request.resource.data.date == date
+                            && request.resource.data.username is string
+                            && request.resource.data.start is string
+                            && request.resource.data.goal is string
+                            && request.resource.data.clicks is number
+                            && request.resource.data.seconds is number;
+      allow delete: if false;
+    }
+
     match /friendRequests/{requestId} {
       allow read: if signedIn()
                   && (resource.data.fromUid == request.auth.uid
