@@ -326,3 +326,6 @@ html[data-theme="dark"] .daily-route,html[data-theme="dark"] .leaderboard-list l
 
 .profile-freeze-note{margin:10px 0 0;color:var(--muted);font-size:10px;line-height:1.5}
 
+
+
+.multiplayer-settings-note{margin:6px 0 14px;color:var(--muted);font-size:12px;line-height:1.5}
