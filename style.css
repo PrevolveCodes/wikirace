@@ -259,3 +259,8 @@ html[data-theme="dark"] .game-invite-notification{background:var(--surface);bord
 .presence-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#9a9a9a;flex:0 0 8px}
 .friend-presence.is-online .presence-dot{background:#2a9d55}
 .friend-presence.is-offline .presence-dot{background:#9a9a9a}
+
+.race-rules{grid-column:1/-1;display:grid;grid-template-columns:1fr;gap:10px;margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}
+.race-rules .custom-route-heading{margin:0 0 2px}
+.race-rules .back-setting{margin:0;font-size:13px;color:var(--text)}
+@media(max-width:760px){.race-rules{grid-column:1}}
