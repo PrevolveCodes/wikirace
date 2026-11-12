@@ -253,3 +253,9 @@ html[data-theme="dark"] .donation-button:hover{background:#a4c7fa}
 .game-invite-actions .text-button{margin:0;padding:6px 8px}
 html[data-theme="dark"] .game-invite-notification{background:var(--surface);border-color:var(--line);color:var(--text);box-shadow:0 5px 22px #0006}
 @media(max-width:560px){.game-invite-notifications{left:12px;bottom:12px;width:calc(100% - 24px)}}
+
+
+.friend-presence{display:inline-flex;align-items:center;gap:6px;margin-top:5px;font-size:12px;color:var(--muted)}
+.presence-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#9a9a9a;flex:0 0 8px}
+.friend-presence.is-online .presence-dot{background:#2a9d55}
+.friend-presence.is-offline .presence-dot{background:#9a9a9a}
