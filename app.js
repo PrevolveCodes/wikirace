@@ -1238,10 +1238,18 @@ function renderRoomChat(messages){
   });
   list.scrollTop=list.scrollHeight;
 }
+function setRoomChatOpen(open){
+  const panel=$("multiplayerChat"),launcher=$("chatLauncher");
+  panel.classList.toggle("chat-open",open);panel.classList.toggle("hidden",!open);
+  panel.setAttribute("aria-hidden",String(!open));launcher.classList.toggle("hidden",!activeRoom||activeRoom.status!=="racing");
+  launcher.setAttribute("aria-expanded",String(open));
+  if(open){$("chatUnread").classList.add("hidden");$("chatUnread").textContent="0";$("chatInput").focus();}
+}
 function listenRoomChat(roomId){
   if(chatUnsubscribe)chatUnsubscribe();
-  $("multiplayerChat").classList.remove("hidden");
   $("chatRoomLabel").textContent="GAME "+activeRoomCode;
+  $("chatLauncher").classList.remove("hidden");
+  setRoomChatOpen(true);
   chatUnsubscribe=db.collection("rooms").doc(roomId).collection("chat").orderBy("createdAt","asc").limitToLast(100).onSnapshot(snapshot=>{
     renderRoomChat(snapshot.docs.map(doc=>doc.data()));
   },error=>{console.warn("Chat listener failed:",error);setToast("Chat could not load. Check the Firestore rules.");});
@@ -1261,6 +1269,8 @@ async function sendRoomChat(event){
   finally{chatSending=false;$("chatSendButton").disabled=false;input.focus();}
 }
 $("chatForm").addEventListener("submit",sendRoomChat);
+$("chatLauncher").addEventListener("click",()=>setRoomChatOpen(true));
+$("chatClose").addEventListener("click",()=>setRoomChatOpen(false));
 
 async function launchSharedRace(room){
   stopTimer();if(state.requestController)state.requestController.abort();
@@ -1284,6 +1294,8 @@ async function updateRoomPlayer(finished=false){
 async function leaveRoom(){
   if(activeRoom&&currentUser){try{await db.collection("rooms").doc(activeRoom.id).collection("players").doc(currentUser.uid).delete();}catch(e){}}
   detachRoomListeners();activeRoom=null;activeRoomCode="";roomLaunchKey="";window.roomPlayers=[];
+  if(chatUnsubscribe){chatUnsubscribe();chatUnsubscribe=null;}
+  $("chatLauncher").classList.add("hidden");$("multiplayerChat").classList.add("hidden");$("multiplayerChat").classList.remove("chat-open");
   $("roomStatus").classList.add("hidden");setToast("You left the game.");
 }
 async function handleStartAction(){
