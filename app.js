@@ -781,3 +781,15 @@ async function handleStartAction(){
 $("createRoomButton").addEventListener("click",createRoom);
 $("joinRoomButton").addEventListener("click",joinRoom);
 $("joinCodeInput").addEventListener("input",()=>{$("joinCodeInput").value=$("joinCodeInput").value.toUpperCase().replace(/[^A-HJ-NP-Z2-9]/g,"").slice(0,6);});
+
+
+// Show the Wikipedia donation message once per browser unless dismissed.
+const donationPopup = $("donationPopup");
+const donationDismissedKey = "wikirace-donation-dismissed";
+if (donationPopup && localStorage.getItem(donationDismissedKey) !== "true") {
+  window.setTimeout(() => donationPopup.classList.remove("hidden"), 4500);
+}
+$("closeDonation")?.addEventListener("click", () => {
+  donationPopup?.classList.add("hidden");
+  localStorage.setItem(donationDismissedKey, "true");
+});
