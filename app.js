@@ -533,6 +533,7 @@ let activeRoom = null;
 let activeRoomCode = "";
 let roomUnsubscribe = null;
 let playersUnsubscribe = null;
+let inviteUnsubscribe = null;
 let roomLaunchKey = "";
 window.roomPlayers = [];
 
@@ -583,8 +584,8 @@ auth.onAuthStateChanged(async user => {
   currentUser = user;
   currentUsername = "";
   renderAccount();
-  if (user) { try { await profileFor(user); } catch(e) { setToast(authError(e)); } }
-  else { detachRoomListeners(); activeRoom=null; activeRoomCode=""; $("roomStatus").classList.add("hidden"); }
+  if (user) { try { await profileFor(user); listenForGameInvites(); } catch(e) { setToast(authError(e)); } }
+  else { if(inviteUnsubscribe)inviteUnsubscribe(); inviteUnsubscribe=null; $("gameInviteNotifications").replaceChildren(); detachRoomListeners(); activeRoom=null; activeRoomCode=""; $("roomStatus").classList.add("hidden"); }
   renderAccount();
 });
 $("accountButton").addEventListener("click",()=>currentUser ? openFriends() : authMode("signin"));
@@ -653,7 +654,7 @@ async function loadFriends(){
     connections.forEach(doc=>{
       const data=doc.data(), otherUid=data.members.find(id=>id!==currentUser.uid);
       const name=data.usernames?.[otherUid]||"WikiRace player";
-      friends.appendChild(friendRow(name,"Friend",[{label:"Invite",kind:"friend-invite",run:()=>inviteFriend(name)}]));
+      friends.appendChild(friendRow(name,"Friend",[{label:"Invite",kind:"friend-invite",run:()=>inviteFriend(otherUid,name)}]));
     });
   }catch(error){friendMessage(authError(error),true);}
 }
@@ -704,13 +705,76 @@ async function declineFriendRequest(requestId){
   try{await db.collection("friendRequests").doc(requestId).update({status:"declined"});loadFriends();}
   catch(error){friendMessage(authError(error),true);}
 }
-async function inviteFriend(friendName){
-  if(!activeRoomCode)return friendMessage("Create or join a game first, then you can invite "+friendName+".",true);
-  const invite="Join my WikiRace game! Enter code "+activeRoomCode+" on WikiRace.";
-  try{await navigator.clipboard.writeText(invite);friendMessage("Game invite copied for "+friendName+".");}
-  catch(error){friendMessage("Your game code is "+activeRoomCode+". Share it with "+friendName+".");}
+async function inviteFriend(friendUid,friendName){
+  if(!activeRoom || !activeRoomCode)return friendMessage("Create or join a game first, then invite "+friendName+".",true);
+  if(activeRoom.status!=="waiting")return friendMessage("Invites can only be sent before the race starts.",true);
+  try{
+    await db.collection("gameInvites").add({
+      fromUid:currentUser.uid,
+      toUid:friendUid,
+      fromUsername:currentUsername,
+      roomId:activeRoom.id,
+      roomCode:activeRoomCode,
+      status:"pending",
+      createdAt:firebase.firestore.FieldValue.serverTimestamp()
+    });
+    friendMessage("Invitation sent to "+friendName+".");
+  }catch(error){friendMessage(authError(error),true);}
 }
 
+function showGameInvite(doc){
+  const invite=doc.data();
+  const container=$("gameInviteNotifications");
+  if(!container || document.getElementById("game-invite-"+doc.id))return;
+  const card=document.createElement("div");
+  card.className="game-invite-notification";
+  card.id="game-invite-"+doc.id;
+  const message=document.createElement("p");
+  message.textContent=(invite.fromUsername||"Someone")+" invited you to a WikiRace game.";
+  const actions=document.createElement("div");
+  actions.className="game-invite-actions";
+  const join=document.createElement("button");
+  join.type="button";join.className="secondary-button";join.textContent="Join game";
+  join.addEventListener("click",async()=>{
+    join.disabled=true;
+    try{
+      const roomRef=db.collection("rooms").doc(invite.roomId);
+      const roomSnap=await roomRef.get();
+      if(!roomSnap.exists || roomSnap.data().status!=="waiting")throw new Error("This game is no longer waiting for players.");
+      await roomRef.collection("players").doc(currentUser.uid).set({
+        uid:currentUser.uid,username:currentUsername||await username(),clicks:0,seconds:0,current:"",finished:false
+      });
+      await roomRef.collection("gameInvites").doc(doc.id).delete();
+      card.remove();
+      await listenRoom(invite.roomId,invite.roomCode);
+    }catch(error){setToast(error.message||authError(error));join.disabled=false;}
+  });
+  const dismiss=document.createElement("button");
+  dismiss.type="button";dismiss.className="text-button";dismiss.textContent="Dismiss";
+  dismiss.addEventListener("click",async()=>{
+    try{await db.collection("gameInvites").doc(doc.id).delete();card.remove();}
+    catch(error){setToast(authError(error));}
+  });
+  actions.append(join,dismiss);
+  card.append(message,actions);
+  container.appendChild(card);
+}
+
+function listenForGameInvites(){
+  if(inviteUnsubscribe)inviteUnsubscribe();
+  inviteUnsubscribe=null;
+  $("gameInviteNotifications").replaceChildren();
+  if(!currentUser)return;
+  inviteUnsubscribe=db.collection("gameInvites").where("toUid","==",currentUser.uid).onSnapshot(snapshot=>{
+    snapshot.docChanges().forEach(change=>{
+      if(change.type==="removed"){
+        document.getElementById("game-invite-"+change.doc.id)?.remove();
+      }else if(change.doc.data().status==="pending"){
+        showGameInvite(change.doc);
+      }
+    });
+  },error=>setToast(authError(error)));
+}
 
 function detachRoomListeners(){if(roomUnsubscribe)roomUnsubscribe();if(playersUnsubscribe)playersUnsubscribe();roomUnsubscribe=null;playersUnsubscribe=null;}
 function makeRoomCode(){const chars="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";let s="";for(let i=0;i<6;i++)s+=chars[Math.floor(Math.random()*chars.length)];return s;}
