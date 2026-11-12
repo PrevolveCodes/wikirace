@@ -1176,7 +1176,7 @@ function roomPanel(message,players=[]){
   if(activeRoomCode){const code=document.createElement("div");code.className="room-code-display";code.textContent="GAME CODE: "+activeRoomCode;el.appendChild(code);}
   if(activeRoom?.status==="waiting"){
     const prompt=document.createElement("p");prompt.className="room-ready-prompt";prompt.textContent="Are you ready? Everyone needs to ready up before the host can start.";el.appendChild(prompt);
-    const ready=document.createElement("button");ready.className="secondary-button room-ready-button";ready.textContent=players.find(p=>p.uid===currentUser?.uid)?.ready?"Not ready":"I'm ready";ready.classList.toggle("is-ready",players.find(p=>p.uid===currentUser?.uid)?.ready===true);ready.onclick=toggleRoomReady;el.appendChild(ready);
+    const ready=document.createElement("button");ready.className="secondary-button room-ready-button";ready.textContent=players.find(p=>p.uid===currentUser?.uid)?.ready?"Cancel ready":"Ready";ready.classList.toggle("is-ready",players.find(p=>p.uid===currentUser?.uid)?.ready===true);ready.onclick=toggleRoomReady;el.appendChild(ready);
   }
   if(players.length){
     const list=document.createElement("div");list.className="room-player-list";
