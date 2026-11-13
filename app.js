@@ -1359,7 +1359,7 @@ async function openProfile(uid,name,isOwn=false){
    p=publicSnap.data()||{};
   }
   $("profileTitle").textContent=p.username||name||"WikiRace player";
-  $("profileOwnerBadge").classList.toggle("hidden",!(isOwn&&String(currentUser?.email||"").toLowerCase()==="prevolveyt@gmail.com"));
+  $("profileOwnerBadge")?.classList.toggle("hidden",!(isOwn&&String(currentUser?.email||"").toLowerCase()==="prevolveyt@gmail.com"));
   applyProfileAvatar(p.photoDataUrl||"",p.username||name);
   $("profileBio").textContent=p.profileBio||"No bio added yet.";
   $("profileEditButton").classList.toggle("hidden",!isOwn);
