@@ -927,6 +927,20 @@ function leaveRace() {
   showScreen("home");
 }
 
+function setHomeTab(tab) {
+  const multiplayer = tab === "multiplayer";
+  $("homeScreen").classList.toggle("show-multiplayer", multiplayer);
+  $("soloTab").classList.toggle("active", !multiplayer);
+  $("multiplayerTab").classList.toggle("active", multiplayer);
+  $("soloTab").setAttribute("aria-selected", String(!multiplayer));
+  $("multiplayerTab").setAttribute("aria-selected", String(multiplayer));
+  $("soloTabPanel").setAttribute("aria-hidden", String(multiplayer));
+  $("accountPanel").setAttribute("aria-hidden", String(!multiplayer));
+  window.scrollTo({ top: 0, behavior: "instant" });
+}
+$("soloTab").addEventListener("click", () => setHomeTab("solo"));
+$("multiplayerTab").addEventListener("click", () => setHomeTab("multiplayer"));
+
 document.querySelectorAll(".difficulty-option").forEach(button => {
   button.addEventListener("click", () => {
     document.querySelectorAll(".difficulty-option").forEach(item => item.classList.remove("selected"));
