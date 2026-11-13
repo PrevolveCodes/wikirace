@@ -531,8 +531,8 @@ html[data-theme="dark"] .daily-challenge-card .daily-route{background:var(--surf
 @media(max-width:480px){.friends-modal,.profile-modal{padding:25px 18px}.friends-tabs{gap:0}.friends-tab{padding:10px 8px;font-size:11px}.profile-modal .profile-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.friend-row{align-items:flex-start;flex-direction:column}.friend-actions{width:100%;flex-wrap:wrap}}
 
 /* Full-page WikiRace player dashboard */
-.profile-backdrop{position:fixed;inset:0;z-index:50;display:block;overflow-y:auto;padding:0;background:var(--page)}
-.profile-page{width:min(1120px,calc(100% - 48px));margin:0 auto;padding:28px 0 64px;color:var(--text)}
+.profile-backdrop{position:fixed;inset:0;z-index:50;display:block;overflow-y:auto;padding:0;background:var(--bg)!important;isolation:isolate}
+.profile-page{width:min(1120px,calc(100% - 48px));min-height:100vh;margin:0 auto;padding:28px 0 64px;background:var(--bg);color:var(--text)}
 .profile-page-top{display:flex;align-items:center;gap:18px;padding-bottom:22px;border-bottom:1px solid var(--line)}
 .profile-back-button{border:0;background:transparent;color:var(--muted);font-size:13px;cursor:pointer}
 .profile-banner{display:flex;align-items:center;gap:20px;padding:34px 0 30px;border-bottom:1px solid var(--line)}
