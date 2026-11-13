@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://upload.wikimedia.org">
   <link rel="icon" type="image/png" href="logo.png">
   <link rel="apple-touch-icon" href="logo.png">
-  <link rel="stylesheet" href="style.css?v=tab-swipe-3">
+  <link rel="stylesheet" href="style.css?v=solo-text-spacing-1">
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
@@ -42,7 +42,8 @@
           
           <div class="setup-card" id="soloTabPanel" role="tabpanel" aria-labelledby="soloTab">
             <div class="setup-heading">
-              <div><span class="section-kicker">SOLO RACE</span><h2>Set up your race</h2><p class="setup-description">Choose a difficulty and decide where to start.</p></div>
+              <div><span class="section-kicker">RACE SETTINGS</span><h2>Customize your game</h2></div>
+              <span class="random-tag"><span>✳</span> RANDOM ROUTE</span>
             </div>
             <div class="difficulty-label">DIFFICULTY</div>
             <div class="difficulty-options" role="group" aria-label="Choose difficulty">
@@ -54,14 +55,14 @@
               <div class="custom-route-heading">START AND DESTINATION</div>
               <label>Starting article<input id="customStart" type="text" placeholder="e.g. Minecraft" autocomplete="off" maxlength="120"></label>
               <label>Destination article<input id="customGoal" type="text" placeholder="e.g. World War II" autocomplete="off" maxlength="120"></label>
-              <p class="custom-route-note">Leave both fields blank to get a random route. You can also enter just one article to set the other end randomly.</p>
+              <p class="custom-route-note">These settings also apply to Solo. Leave both blank for a random route.</p>
             </div>
-            <details class="race-rules">
-              <summary class="custom-route-heading">More race rules</summary>
+            <div class="race-rules">
+              <div class="custom-route-heading">RACE RULES</div>
               <label class="back-setting"><input type="checkbox" id="backEnabled" checked> Allow going back to previous articles</label>
               <label class="back-setting"><input type="checkbox" id="blockFindShortcuts"> Disable Ctrl+F, Ctrl+G, and F3</label>
               <label class="back-setting"><input type="checkbox" id="blockBrowserNavigation"> Disable browser back/forward shortcuts</label>
-            </details>
+            </div>
             <button class="primary-button" id="startButton"><span>Start a race</span><span class="button-arrow">→</span></button>
             <p class="setup-note">No account needed. Just you and the entire encyclopedia.</p>
           </div>
