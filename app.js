@@ -1043,6 +1043,11 @@ let lastRoomProgressSecond = -1;
 let roomPresenceUnsubs = new Map();
 let roomPresenceStates = new Map();
 let rematchResetInProgress = false;
+let matchmakingUnsubscribe = null;
+let matchmakingInterval = null;
+let matchmakingRef = null;
+let matchmakingActive = false;
+let matchmakingJoining = false;
 window.roomPlayers = [];
 
 function authError(error) {
@@ -1102,7 +1107,7 @@ auth.onAuthStateChanged(async user => {
   currentUsername = "";
   renderAccount();
   if (user) { try { await profileFor(user); listenForGameInvites(); startPresenceTracking(); } catch(e) { setToast(authError(e)); } }
-  else { if(presenceHeartbeat)clearInterval(presenceHeartbeat); presenceHeartbeat=null; document.removeEventListener("visibilitychange",handlePresenceVisibility); stopFriendPresenceListeners(); if(inviteUnsubscribe)inviteUnsubscribe(); inviteUnsubscribe=null; $("gameInviteNotifications").replaceChildren(); detachRoomListeners(); activeRoom=null; activeRoomCode=""; $("roomStatus").classList.add("hidden"); }
+  else { if(matchmakingActive)cancelRandomMatch(false); if(presenceHeartbeat)clearInterval(presenceHeartbeat); presenceHeartbeat=null; document.removeEventListener("visibilitychange",handlePresenceVisibility); stopFriendPresenceListeners(); if(inviteUnsubscribe)inviteUnsubscribe(); inviteUnsubscribe=null; $("gameInviteNotifications").replaceChildren(); detachRoomListeners(); activeRoom=null; activeRoomCode=""; $("roomStatus").classList.add("hidden"); }
   renderAccount();
   loadDailyChallenge();
 });
@@ -1455,6 +1460,122 @@ function handleRoomPlayersUpdate(){
   if(screens.win.classList.contains("active"))renderMultiplayerResults();
 }
 
+function setMatchmakingUI(message,searching=true){
+  const status=$("matchmakingStatus");
+  if(status){status.textContent=message||"";status.classList.toggle("hidden",!message);}
+  $("randomMatchButton").classList.toggle("hidden",searching);
+  $("cancelMatchButton").classList.toggle("hidden",!searching);
+  $("randomMatchButton").disabled=searching;
+}
+function stopMatchmakingListeners(){
+  if(matchmakingInterval){clearInterval(matchmakingInterval);matchmakingInterval=null;}
+  if(matchmakingUnsubscribe){matchmakingUnsubscribe();matchmakingUnsubscribe=null;}
+}
+async function cancelRandomMatch(showMessage=true){
+  stopMatchmakingListeners();
+  const ref=matchmakingRef;
+  matchmakingRef=null;matchmakingActive=false;matchmakingJoining=false;
+  if(ref&&currentUser){try{await ref.delete();}catch(error){}}
+  setMatchmakingUI("",false);
+  if(showMessage)setToast("Matchmaking cancelled.");
+}
+async function enterMatchedRoom(data){
+  if(matchmakingJoining||!currentUser||!data?.roomId)return;
+  matchmakingJoining=true;
+  stopMatchmakingListeners();
+  try{
+    const roomRef=db.collection("rooms").doc(data.roomId);
+    const roomSnap=await roomRef.get();
+    if(!roomSnap.exists||roomSnap.data().status!=="waiting")throw new Error("That match is no longer available. Search again.");
+    await roomRef.collection("players").doc(currentUser.uid).set({
+      uid:currentUser.uid,username:currentUsername||await username(),clicks:0,seconds:0,current:"",finished:false,ready:false
+    });
+    const code=data.roomCode||roomSnap.data().code||"";
+    if(matchmakingRef){await matchmakingRef.delete().catch(()=>{});}
+    matchmakingRef=null;matchmakingActive=false;matchmakingJoining=false;
+    setMatchmakingUI("",false);
+    window.roomPlayers=[];
+    await listenRoom(roomRef.id,code);
+    setToast("Match found. You're in the game room.");
+  }catch(error){
+    matchmakingJoining=false;
+    await cancelRandomMatch(false);
+    setToast(error.message||authError(error));
+  }
+}
+async function tryFindRandomOpponent(){
+  if(!matchmakingActive||!currentUser||!matchmakingRef||matchmakingJoining)return;
+  try{
+    const waiting=await db.collection("matchmakingQueue")
+      .where("status","==","waiting")
+      .where("difficulty","==",state.difficulty)
+      .limit(12).get();
+    const candidates=waiting.docs.filter(doc=>doc.id!==currentUser.uid);
+    for(const candidate of candidates){
+      const roomRef=db.collection("rooms").doc();
+      const code=makeRoomCode();
+      const playerName=currentUsername||await username();
+      const candidateClaimed=await db.runTransaction(async tx=>{
+        const latest=await tx.get(candidate.ref);
+        if(!latest.exists||latest.data().status!=="waiting"||latest.data().uid===currentUser.uid)return false;
+        const created=latest.data().createdAt?.toMillis?.()||0;
+        if(created&&Date.now()-created>120000)return false;
+        tx.set(roomRef,{
+          code,hostUid:currentUser.uid,status:"waiting",
+          createdAt:firebase.firestore.FieldValue.serverTimestamp(),
+          start:"",goal:"",difficulty:state.difficulty,matchType:"random"
+        });
+        tx.set(roomRef.collection("players").doc(currentUser.uid),{
+          uid:currentUser.uid,username:playerName,clicks:0,seconds:0,current:"",finished:false,ready:false
+        });
+        tx.update(candidate.ref,{
+          status:"matched",roomId:roomRef.id,roomCode:code,matchedByUid:currentUser.uid,
+          matchedAt:firebase.firestore.FieldValue.serverTimestamp()
+        });
+        return true;
+      });
+      if(candidateClaimed){
+        await matchmakingRef.update({
+          status:"matched",roomId:roomRef.id,roomCode:code,matchedByUid:currentUser.uid,
+          matchedAt:firebase.firestore.FieldValue.serverTimestamp()
+        });
+        return;
+      }
+    }
+  }catch(error){
+    console.warn("Random matchmaking search failed:",error);
+    setToast(authError(error));
+    await cancelRandomMatch(false);
+  }
+}
+async function startRandomMatch(){
+  if(!currentUser)return authMode("signin");
+  if(activeRoomCode||matchmakingActive)return;
+  matchmakingActive=true;matchmakingJoining=false;
+  setMatchmakingUI("Searching for another player on "+state.difficulty+" difficulty…");
+  try{
+    const ref=db.collection("matchmakingQueue").doc(currentUser.uid);
+    matchmakingRef=ref;
+    await ref.set({
+      uid:currentUser.uid,username:currentUsername||await username(),
+      status:"waiting",difficulty:state.difficulty,
+      createdAt:firebase.firestore.FieldValue.serverTimestamp()
+    });
+    matchmakingUnsubscribe=ref.onSnapshot(snapshot=>{
+      if(!snapshot.exists){if(matchmakingActive&&!matchmakingJoining){setToast("Your matchmaking search ended.");cancelRandomMatch(false);}return;}
+      const data=snapshot.data();
+      if(data.status==="matched")enterMatchedRoom(data);
+    },error=>{setToast(authError(error));cancelRandomMatch(false);});
+    await tryFindRandomOpponent();
+    if(matchmakingActive&&!matchmakingJoining){
+      matchmakingInterval=setInterval(tryFindRandomOpponent,3000);
+      setMatchmakingUI("Searching for another player on "+state.difficulty+" difficulty…");
+    }
+  }catch(error){
+    await cancelRandomMatch(false);
+    setToast(authError(error));
+  }
+}
 async function createRoom(){
   if(!currentUser)return authMode("signin");
   try{
@@ -1574,6 +1695,8 @@ $("dailyRunButton").addEventListener("click",startDailyRun);
 $("dailyHistoryButton").addEventListener("click",openDailyHistory);
 $("dailyHistoryClose").addEventListener("click",()=>$("dailyHistoryModal").classList.add("hidden"));
 $("dailyHistoryModal").addEventListener("click",event=>{if(event.target===$("dailyHistoryModal"))$("dailyHistoryModal").classList.add("hidden");});
+$("randomMatchButton").addEventListener("click",startRandomMatch);
+$("cancelMatchButton").addEventListener("click",()=>cancelRandomMatch(true));
 $("createRoomButton").addEventListener("click",createRoom);
 $("joinRoomButton").addEventListener("click",joinRoom);
 $("joinCodeInput").addEventListener("input",()=>{$("joinCodeInput").value=$("joinCodeInput").value.toUpperCase().replace(/[^A-HJ-NP-Z2-9]/g,"").slice(0,6);});
