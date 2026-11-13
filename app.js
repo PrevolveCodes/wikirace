@@ -950,26 +950,6 @@ async function beginRace() {
   }
 }
 
-async function newRoute() {
-  state.mode="solo";
-  state.dailyDate=null;
-  stopTimer();
-  state.loading = false;
-  if (state.requestController) state.requestController.abort();
-  const [start, goal] = await chooseRoute();
-  state.start = start;
-  state.goal = goal;
-  state.history = [];
-  state.historyIndex = -1;
-  recordArticleVisit(start);
-  state.clicks = 0;
-  state.seconds = 0;
-  $("startTitle").textContent = start;
-  $("goalTitle").textContent = goal;
-  updateStats();
-  startTimer();
-  await loadArticle(start, false);
-}
 
 function leaveRace() {
   if (activeRoomCode) leaveRoom();
@@ -1033,7 +1013,6 @@ document.querySelectorAll(".difficulty-option").forEach(button => {
 });
 
 $("startButton").addEventListener("click", handleStartAction);
-$("restartButton").addEventListener("click", () => newRoute().catch(error => setToast(error.message)));
 $("previousButton").addEventListener("click", goBackArticle);
 $("quitButton").addEventListener("click", leaveRace);
 $("playAgainButton").addEventListener("click", () => { showScreen("home"); beginRace(); });
