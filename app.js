@@ -80,6 +80,7 @@ backEnabledInput.addEventListener("change", () => {
   updateBackButton();
 });
 const themePreference = localStorage.getItem("wikirace-theme") || "system";
+const soundToggle=$("soundEffectsEnabled");if(soundToggle){soundToggle.checked=localStorage.getItem("wikirace-sounds")!=="off";soundToggle.addEventListener("change",()=>localStorage.setItem("wikirace-sounds",soundToggle.checked?"on":"off"));}
 const colorScheme = window.matchMedia("(prefers-color-scheme: light)");
 function applyTheme() {
   const resolved = themePreference === "system" ? (colorScheme.matches ? "light" : "dark") : themePreference;
@@ -1406,6 +1407,7 @@ function openProfileSettings(profile={}){
  pendingProfilePhoto=null;
  $("settingsUsername").value=profile.username||currentUsername||"";
  $("settingsBio").value=profile.profileBio||"";
+ const titleSelect=$("settingsTitle");if(titleSelect){const level=levelFromXp(profile.xp||0),unlocks=[["Article Explorer",5],["Page Navigator",10],["Knowledge Expert",20],["Wiki Master",30],["Encyclopedia Legend",50]];[...titleSelect.options].forEach(option=>{const requirement=unlocks.find(x=>x[0]===option.value)?.[1]||1;option.disabled=option.value!==""&&level<requirement;});titleSelect.value=profile.customTitle||"";}
  $("settingsPhotoFile").value="";
  $("settingsPhotoPreview").style.backgroundImage=profile.photoDataUrl?'url("'+profile.photoDataUrl+'")':"";
  $("settingsPhotoPreview").textContent=profile.photoDataUrl?"":(profile.username||currentUsername||"W").charAt(0).toUpperCase();
@@ -1420,6 +1422,7 @@ async function saveProfileSettings(){
  try{
   const nextName=$("settingsUsername").value.trim();
   const nextBio=$("settingsBio").value.trim().slice(0,160);
+  const nextTitle=$("settingsTitle").value;
   const nextKey=usernameKey(nextName),oldKey=usernameKey(currentUsername);
   if(nextName.length<3||nextName.length>20||!/^[a-zA-Z0-9_-]+$/.test(nextName))throw new Error("Username must be 3–20 characters and use only letters, numbers, _ or -.");
   const userRef=db.collection("users").doc(currentUser.uid);
@@ -1431,7 +1434,8 @@ async function saveProfileSettings(){
    if(newIndexSnap.exists&&newIndexSnap.data().uid!==currentUser.uid)throw new Error("That username is already taken.");
    const oldData=userSnap.exists?userSnap.data()||{}:{};
    const photo=pendingProfilePhoto===null?(oldData.photoDataUrl||""):(pendingProfilePhoto||"");
-   const updates={username:nextName,profileBio:nextBio,photoDataUrl:photo};
+   const level=levelFromXp(oldData.xp||0),requirements={"Article Explorer":5,"Page Navigator":10,"Knowledge Expert":20,"Wiki Master":30,"Encyclopedia Legend":50};if(nextTitle&&level<(requirements[nextTitle]||999))throw new Error("Reach the required level to use that title.");
+   const updates={username:nextName,profileBio:nextBio,photoDataUrl:photo,customTitle:nextTitle};
    tx.set(userRef,updates,{merge:true});
    tx.set(nextIndexRef,{uid:currentUser.uid,username:nextName});
    if(oldKey&&oldKey!==nextKey)tx.delete(oldIndexRef);
@@ -1439,6 +1443,7 @@ async function saveProfileSettings(){
   });
   currentUsername=nextName;
   setProfileTitle(nextName);$("profileBio").textContent=nextBio||"No bio added yet.";
+  const updatedProfile=(await userRef.get()).data()||{};renderProgression(updatedProfile);
   applyProfileAvatar(pendingProfilePhoto===null?($("settingsPhotoPreview").style.backgroundImage?$("settingsPhotoPreview").style.backgroundImage.slice(5,-2):""):pendingProfilePhoto,nextName);
   $("profileJoined").textContent=$("profileJoined").textContent;
   $("profileSettingsPanel").classList.add("hidden");
