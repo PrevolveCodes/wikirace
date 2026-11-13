@@ -1489,7 +1489,7 @@ async function openProfile(uid,name,isOwn=false){
    const badge=document.createElement("span");badge.className="profile-badge";badge.textContent=formatDailyBadge(m);$("viewProfileBadges").appendChild(badge);
   });
   const races=Array.isArray(p.raceHistory)?p.raceHistory:[];
-  profilePeriodOffset=0;window.profileDisplayedRaceHistory=races;renderProfileLineChart(races);renderProfileRaces(races);renderProfileDaily(Array.isArray(p.dailyHistory)?p.dailyHistory:[]);
+  profilePeriodOffset=0;window.profileDisplayedRaceHistory=races;renderProfileLineChart(races);renderProfileRaces(races);renderProfileDaily(Array.isArray(p.dailyHistory)?p.dailyHistory:[]);renderProfileAchievements(p,races,Array.isArray(p.dailyHistory)?p.dailyHistory:[]);
   $("profileInviteButton").classList.toggle("hidden",isOwn||!currentUser);
   $("profileInviteButton").onclick=()=>inviteFriend(uid,p.username||name||"player");
  }catch(error){
@@ -1497,6 +1497,83 @@ async function openProfile(uid,name,isOwn=false){
   $("profileJoined").textContent="Could not load profile";
   setToast(error.code?authError(error):(error.message||"Could not load this profile."));
  }
+}
+
+function renderProfileAchievements(profile={},races=[],dailyHistory=[]){
+ const host=$("profileAchievements");if(!host)return;host.replaceChildren();
+ const total=Number(profile.races||0),wins=Number(profile.wins||0);
+ const pages=new Set(),routes=new Set();
+ races.forEach(r=>{
+  if(r.start)pages.add(String(r.start).toLowerCase());
+  if(r.goal)pages.add(String(r.goal).toLowerCase());
+  if(r.start&&r.goal)routes.add(String(r.start).toLowerCase()+"|"+String(r.goal).toLowerCase());
+ });
+ const multiplayer=races.filter(r=>r.mode==="multiplayer").length;
+ const solo=races.filter(r=>!r.mode||r.mode==="solo").length;
+ const hard=races.filter(r=>String(r.difficulty||"").toLowerCase()==="hard").length;
+ const medium=races.filter(r=>String(r.difficulty||"").toLowerCase()==="medium").length;
+ const fast=races.filter(r=>Number(r.seconds)>0&&Number(r.seconds)<=60).length;
+ const under30=races.filter(r=>Number(r.seconds)>0&&Number(r.seconds)<=30).length;
+ const under10=races.filter(r=>Number(r.seconds)>0&&Number(r.seconds)<=10).length;
+ const lowClicks=races.filter(r=>Number(r.clicks)<=5).length;
+ const night=races.filter(r=>{const d=new Date(r.date);return Number.isFinite(d.getTime())&&(d.getHours()>=0&&d.getHours()<5);}).length;
+ const morning=races.filter(r=>{const d=new Date(r.date);return Number.isFinite(d.getTime())&&d.getHours()>=5&&d.getHours()<9;}).length;
+ const marathon=races.filter(r=>Number(r.seconds)>=600).length;
+ const daily=Number(profile.totalDailyRuns||dailyHistory.length||0),streak=Number(profile.longestStreak||0);
+ const achievements=[
+  ["first-race","First Steps","Complete your first race","1 race",total,1,"🏁"],
+  ["five-races","Getting Warmed Up","Complete 5 races","5 races",total,5,"🔥"],
+  ["ten-races","Regular Racer","Complete 10 races","10 races",total,10,"🏎️"],
+  ["twenty-five-races","Dedicated","Complete 25 races","25 races",total,25,"🎖️"],
+  ["fifty-races","Race Veteran","Complete 50 races","50 races",total,50,"🏆"],
+  ["hundred-races","Century Club","Complete 100 races","100 races",total,100,"💯"],
+  ["two-fifty-races","WikiRace Machine","Complete 250 races","250 races",total,250,"⚙️"],
+  ["five-hundred-races","Legendary Racer","Complete 500 races","500 races",total,500,"👑"],
+  ["first-win","First Victory","Win your first race","1 win",wins,1,"🥇"],
+  ["ten-wins","Winning Streak","Win 10 races","10 wins",wins,10,"🏅"],
+  ["fifty-wins","Champion","Win 50 races","50 wins",wins,50,"🏆"],
+  ["explorer-10","Curious Mind","Use 10 different start or finish articles","10 articles",pages.size,10,"🧭"],
+  ["explorer-25","Deep Explorer","Use 25 different start or finish articles","25 articles",pages.size,25,"🗺️"],
+  ["routes-10","Route Collector","Complete 10 different routes","10 routes",routes.size,10,"🔀"],
+  ["speed-60","Quick Thinker","Finish a race in under 60 seconds","1 race",fast,1,"⏱️"],
+  ["speed-30","Speedrunner","Finish a race in 30 seconds or less","1 race",under30,1,"⚡"],
+  ["speed-10","Lightning Fast","Finish a race in 10 seconds or less","1 race",under10,1,"🌩️"],
+  ["five-clicks","Efficient","Finish a race in 5 clicks or fewer","1 race",lowClicks,1,"🎯"],
+  ["solo-10","Solo Specialist","Complete 10 solo races","10 races",solo,10,"🧩"],
+  ["multiplayer-1","Not Alone","Complete a multiplayer race","1 race",multiplayer,1,"👥"],
+  ["multiplayer-10","Rival","Complete 10 multiplayer races","10 races",multiplayer,10,"⚔️"],
+  ["hard-1","Hard Mode","Complete a Hard difficulty race","1 race",hard,1,"💀"],
+  ["hard-10","Hardcore","Complete 10 Hard difficulty races","10 races",hard,10,"🔥"],
+  ["medium-10","Finding Your Pace","Complete 10 Medium difficulty races","10 races",medium,10,"📈"],
+  ["daily-1","Daily Starter","Complete a Daily Run","1 run",daily,1,"📅"],
+  ["daily-7","Daily Regular","Complete 7 Daily Runs","7 runs",daily,7,"🗓️"],
+  ["daily-30","Daily Dedicated","Complete 30 Daily Runs","30 runs",daily,30,"🌟"],
+  ["streak-3","Three in a Row","Reach a 3-day Daily Run streak","3 days",streak,3,"🔥"],
+  ["streak-7","Week of Knowledge","Reach a 7-day Daily Run streak","7 days",streak,7,"📆"],
+  ["streak-30","Unstoppable","Reach a 30-day Daily Run streak","30 days",streak,30,"💎"],
+  ["early-bird","Early Bird","Complete a race before 9 AM","1 race",morning,1,"🌅"],
+  ["night-owl","Night Owl","Complete a race between midnight and 5 AM","1 race",night,1,"🦉"],
+  ["marathon","Marathon","Spend 10 minutes or more on a single race","1 race",marathon,1,"🧠"]
+ ];
+ let unlocked=0;
+ achievements.forEach(([id,title,description,target,current,goal,icon])=>{
+  const earned=current>=goal;if(earned)unlocked++;
+  const card=document.createElement("article");card.className="profile-achievement"+(earned?" is-earned":" is-locked");
+  const symbol=document.createElement("span");symbol.className="profile-achievement-icon";symbol.textContent=icon;
+  const content=document.createElement("div");content.className="profile-achievement-copy";
+  const heading=document.createElement("div");heading.className="profile-achievement-heading";
+  const name=document.createElement("strong");name.textContent=title;
+  const status=document.createElement("span");status.className="profile-achievement-status";status.textContent=earned?"UNLOCKED":"LOCKED";
+  heading.append(name,status);
+  const detail=document.createElement("p");detail.textContent=description;
+  const progress=document.createElement("div");progress.className="profile-achievement-progress";
+  const track=document.createElement("span");track.className="profile-achievement-track";
+  const fill=document.createElement("i");fill.style.width=Math.min(100,Math.max(0,current/goal*100))+"%";track.appendChild(fill);
+  const count=document.createElement("small");count.textContent=Math.min(current,goal)+" / "+goal+" "+target.replace(/^\d+ /,"");
+  progress.append(track,count);content.append(heading,detail,progress);card.append(symbol,content);host.appendChild(card);
+ });
+ const summary=document.createElement("p");summary.className="profile-achievement-summary";summary.textContent=unlocked+" of "+achievements.length+" achievements unlocked";
+ host.prepend(summary);
 }
 function friendMessage(message,isError=false){$("friendsMessage").textContent=message;$("friendsMessage").classList.toggle("error",isError);}
 function openFriends(){
