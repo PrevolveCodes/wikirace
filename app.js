@@ -120,7 +120,8 @@ const state = {
   historyIndex: -1,
   mode: "solo",
   dailyDate: null,
-  dailySubmitted: false
+  dailySubmitted: false,
+  realSeconds:0,powerupsEnabled:false,timeFreezeStartedAt:0,timeFreezeUntil:0,timeFreezeTotalMs:0,timeFreezeUsed:false,timeFreezeRefundPending:false,clickShieldActive:false,powerupsUsed:[]
 };
 
 function updateBackButton() {
@@ -256,6 +257,20 @@ function levelFromXp(xp){return Math.floor(Math.sqrt(Math.max(0,Number(xp)||0)/1
 function xpForNextLevel(level){return Math.pow(Math.max(1,Number(level)||1),2)*100;}
 function titleForLevel(level){if(level>=50)return "Encyclopedia Legend";if(level>=30)return "Wiki Master";if(level>=20)return "Knowledge Expert";if(level>=10)return "Page Navigator";if(level>=5)return "Article Explorer";return "Newcomer";}
 function awardXp(clicks,seconds,difficulty){const bonus={easy:0,medium:5,hard:10}[difficulty]||0;return Math.max(10,20+bonus+Math.max(0,10-Number(clicks||0))+(Number(seconds||0)<=30?10:0));}
+const POWERUP_CATALOG=[{id:"hint",name:"Hint",description:"Shows the first letter and word count of the destination.",cost:1},{id:"undo",name:"Undo",description:"Return to your previous article without adding a click.",cost:1},{id:"timeFreeze",name:"Time Freeze",description:"Pauses the displayed timer for 10 seconds.",cost:2},{id:"linkFinder",name:"Link Finder",description:"Highlights links related to your destination.",cost:1},{id:"clickShield",name:"Click Shield",description:"Your next article navigation will not add a click.",cost:2}];
+const POWERUP_EXCHANGE_RATE=100;let powerupInventory={},spendableXp=0,gameTokens=0,powerupShopBusy=false;
+function normalizeInventory(v={}){const o={};POWERUP_CATALOG.forEach(p=>o[p.id]=Math.max(0,Math.floor(Number(v?.[p.id]||0))));return o;}
+async function loadPowerupWallet(){if(!currentUser){spendableXp=0;gameTokens=0;powerupInventory={};renderPowerupWallet();return;}try{const snap=await db.collection("users").doc(currentUser.uid).get(),p=snap.data()||{};spendableXp=Math.max(0,Number(p.spendableXp||0));gameTokens=Math.max(0,Number(p.gameTokens||0));powerupInventory=normalizeInventory(p.powerupInventory||{});}catch(e){console.warn(e);}renderPowerupWallet();}
+function renderPowerupWallet(){const x=$("powerupSpendableXp"),t=$("powerupTokenCount");if(x)x.textContent=String(spendableXp);if(t)t.textContent=String(gameTokens);const host=$("powerupShopItems");if(!host)return;host.replaceChildren();POWERUP_CATALOG.forEach(p=>{const row=document.createElement("article");row.className="powerup-shop-item";const copy=document.createElement("div");copy.className="powerup-shop-copy";const n=document.createElement("strong");n.textContent=p.name;const d=document.createElement("p");d.textContent=p.description;const o=document.createElement("small");o.textContent="Owned: "+(powerupInventory[p.id]||0);copy.append(n,d,o);const b=document.createElement("button");b.className="secondary-button";b.type="button";b.textContent="Buy · "+p.cost+" token"+(p.cost===1?"":"s");b.disabled=!currentUser||gameTokens<p.cost||powerupShopBusy;b.onclick=()=>buyPowerup(p.id);row.append(copy,b);host.append(row);});const ex=$("exchangeXpButton");if(ex)ex.disabled=!currentUser||spendableXp<100||powerupShopBusy;}
+function openPowerupShop(){if(!currentUser){authMode("signin");setToast("Sign in to earn and buy powerups.");return;}$("powerupShopModal").classList.remove("hidden");loadPowerupWallet();}
+async function exchangeSpendableXp(){if(!currentUser||powerupShopBusy)return;powerupShopBusy=true;renderPowerupWallet();try{const ref=db.collection("users").doc(currentUser.uid),w=await db.runTransaction(async tx=>{const snap=await tx.get(ref),p=snap.data()||{},xp=Number(p.spendableXp||0),tokens=Number(p.gameTokens||0);if(xp<100)throw Error("You need 100 Spendable XP for 1 token.");tx.set(ref,{spendableXp:xp-100,gameTokens:tokens+1},{merge:true});return {xp:xp-100,tokens:tokens+1};});spendableXp=w.xp;gameTokens=w.tokens;setToast("Exchanged 100 Spendable XP for 1 token.");}catch(e){setToast(e.message||authError(e));}finally{powerupShopBusy=false;renderPowerupWallet();}}
+async function buyPowerup(id){if(!currentUser||powerupShopBusy)return;const p=POWERUP_CATALOG.find(x=>x.id===id);if(!p)return;powerupShopBusy=true;renderPowerupWallet();try{const ref=db.collection("users").doc(currentUser.uid),w=await db.runTransaction(async tx=>{const snap=await tx.get(ref),data=snap.data()||{},tokens=Number(data.gameTokens||0);if(tokens<p.cost)throw Error("You do not have enough tokens.");const inv=normalizeInventory(data.powerupInventory||{});inv[id]++;tx.set(ref,{gameTokens:tokens-p.cost,powerupInventory:inv},{merge:true});return {tokens:tokens-p.cost,inv};});gameTokens=w.tokens;powerupInventory=w.inv;setToast(p.name+" purchased.");}catch(e){setToast(e.message||authError(e));}finally{powerupShopBusy=false;renderPowerupWallet();renderRacePowerups();}}
+async function consumePowerup(id){if(!currentUser)throw Error("Sign in to use powerups.");const ref=db.collection("users").doc(currentUser.uid);powerupInventory=await db.runTransaction(async tx=>{const snap=await tx.get(ref),p=snap.data()||{},inv=normalizeInventory(p.powerupInventory||{});if(!inv[id])throw Error("You do not own this powerup.");inv[id]--;tx.set(ref,{powerupInventory:inv},{merge:true});return inv;});renderPowerupWallet();renderRacePowerups();}
+function renderRacePowerups(){const host=$("racePowerups");if(!host)return;host.replaceChildren();if(!state.powerupsEnabled||state.mode==="daily"||!currentUser){host.classList.add("hidden");return;}host.classList.remove("hidden");POWERUP_CATALOG.forEach(p=>{const n=Number(powerupInventory[p.id]||0),b=document.createElement("button");b.type="button";b.className="race-powerup-button";b.textContent=p.name+" · "+n;b.title=p.description;b.disabled=n<1||state.loading||multiplayerLocalFinished||multiplayerEnded||(p.id==="timeFreeze"&&state.timeFreezeUsed)||(p.id==="undo"&&state.historyIndex<=0);b.onclick=()=>activatePowerup(p.id);host.append(b);});}
+async function activatePowerup(id){if(!state.powerupsEnabled||state.mode==="daily"||!screens.game.classList.contains("active")||!currentUser)return;if(id==="undo"&&(state.historyIndex<=0||state.loading))return setToast("There is no previous article to return to.");if(id==="timeFreeze"&&state.timeFreezeUsed)return setToast("Time Freeze can only be used once per race.");if(id==="clickShield"&&state.clickShieldActive)return setToast("Click Shield is already active.");try{await consumePowerup(id);state.powerupsUsed.push(id);if(id==="hint"){const words=String(state.goal||"").trim().split(" ").filter(Boolean);setToast("Hint: the destination starts with “"+(words[0]?.charAt(0)||"?")+"” and has "+words.length+" word"+(words.length===1?"":"s")+".");}else if(id==="undo"){state.historyIndex--;await loadArticle(state.history[state.historyIndex],false);updateRoomPlayer(false,{scrollY:0,scrollPercent:0});setToast("Returned to the previous article without adding a click.");}else if(id==="timeFreeze"){state.timeFreezeUsed=true;state.timeFreezeStartedAt=Date.now();state.timeFreezeUntil=state.timeFreezeStartedAt+10000;setToast("Timer paused for 10 seconds.");}else if(id==="linkFinder"){const frame=$("articleContent").querySelector("iframe");frame?.contentWindow?.postMessage({type:"wikirace-powerup-linkfinder",goal:state.goal},"*");setToast("Looking for useful links on this article.");}else if(id==="clickShield"){state.clickShieldActive=true;setToast("Your next navigation will not count as a click.");}renderRacePowerups();}catch(e){setToast(e.message||authError(e));}}
+function finishTimeFreezeAccounting(now=Date.now()){if(state.timeFreezeStartedAt){state.timeFreezeTotalMs+=Math.max(0,Math.min(10000,now-state.timeFreezeStartedAt));state.timeFreezeStartedAt=0;state.timeFreezeUntil=0;}}
+function resetRacePowerups(enabled=false){state.powerupsEnabled=!!enabled;state.timeFreezeStartedAt=0;state.timeFreezeUntil=0;state.timeFreezeTotalMs=0;state.timeFreezeUsed=false;state.timeFreezeRefundPending=false;state.clickShieldActive=false;state.powerupsUsed=[];renderRacePowerups();}
+
 function getDailyBonus(){const day=Math.floor(Date.now()/86400000),challenges=[{title:"Quick Finish",description:"Finish any race in under 60 seconds for +30 XP.",test:(c,s)=>s<60},{title:"Efficient Explorer",description:"Reach the destination in 8 clicks or fewer for +30 XP.",test:(c)=>c<=8},{title:"Hard Mode Hero",description:"Complete a Hard race for +30 XP.",test:(c,s,d)=>d==="hard"},{title:"Speed Reader",description:"Finish in 30 seconds or less for +30 XP.",test:(c,s)=>s<=30}];return challenges[day%challenges.length];}
 function renderDailyBonus(claimed=false){const challenge=getDailyBonus();const title=$("dailyBonusTitle"),description=$("dailyBonusDescription"),status=$("dailyBonusStatus"),card=$("dailyBonusCard");if(title)title.textContent=challenge.title;if(description)description.textContent=challenge.description;if(status){status.textContent=claimed?"DONE":"NOT COMPLETE";status.classList.toggle("is-done",claimed);}if(card)card.classList.toggle("is-complete",claimed);}
 
@@ -277,12 +292,16 @@ function updateStats() {
 function startTimer() {
   window.clearInterval(state.timerInterval);
   state.startedAt = Date.now();
-  state.seconds = 0;
-  state.timerInterval = window.setInterval(() => {
-    state.seconds = Math.floor((Date.now() - state.startedAt) / 1000);
+  state.seconds=0;state.realSeconds=0;
+  state.timerInterval=window.setInterval(()=>{
+    const now=Date.now();
+    if(state.timeFreezeStartedAt&&now>=state.timeFreezeUntil)finishTimeFreezeAccounting(state.timeFreezeUntil);
+    state.realSeconds=Math.floor((now-state.startedAt)/1000);
+    const frozen=state.timeFreezeTotalMs+(state.timeFreezeStartedAt?Math.max(0,Math.min(10000,now-state.timeFreezeStartedAt)):0);
+    state.seconds=Math.floor(Math.max(0,now-state.startedAt-frozen)/1000);
     $("timer").textContent = formatTime(state.seconds);
-    if(state.mode==="multiplayer" && state.seconds%2===0 && state.seconds!==lastRoomProgressSecond && !multiplayerLocalFinished && !multiplayerEnded){
-      lastRoomProgressSecond=state.seconds;
+    if(state.mode==="multiplayer" && state.realSeconds%2===0 && state.realSeconds!==lastRoomProgressSecond && !multiplayerLocalFinished && !multiplayerEnded){
+      lastRoomProgressSecond=state.realSeconds;
       updateRoomPlayer(false);
     }
   }, 250);
@@ -621,6 +640,7 @@ async function startDailyRun() {
     state.mode="daily";
     state.dailyDate=utcDateKey();
     state.dailySubmitted=false;
+    resetRacePowerups(false);
     state.clicks=0;state.seconds=0;state.loading=false;
     const [start,goal]=dailyRouteForDate(state.dailyDate);
     state.start=start;state.goal=goal;state.current=start;
@@ -737,6 +757,11 @@ async function openDailyHistory() {
 
 function finishRace() {
   if(state.mode==="multiplayer" && multiplayerLocalFinished)return;
+  finishTimeFreezeAccounting();
+  state.realSeconds=Math.floor((Date.now()-state.startedAt)/1000);
+  const displaySeconds=state.seconds,raceSeconds=state.realSeconds||state.seconds;
+  state.timeFreezeRefundPending=state.timeFreezeUsed&&((displaySeconds<=10&&raceSeconds>10)||(displaySeconds<=30&&raceSeconds>30)||(displaySeconds<60&&raceSeconds>=60));
+  state.seconds=raceSeconds;
   stopTimer();
   state.loading = false;
   if(state.mode==="multiplayer")multiplayerLocalFinished=true;
@@ -750,6 +775,7 @@ function finishRace() {
   $("winGoal").textContent = state.goal;
   $("finalTime").textContent = formatTime(state.seconds);
   $("finalClicks").textContent = String(state.clicks);
+  const freezeNotice=$("timeFreezeNotice");if(freezeNotice){freezeNotice.textContent=state.timeFreezeRefundPending?"Time Freeze refunded. Your real time was used for rewards and records.":"";freezeNotice.classList.toggle("hidden",!state.timeFreezeRefundPending);}
   const guestPrompt=$("guestSignupPrompt");
   guestPrompt?.classList.toggle("hidden",!!currentUser || state.mode==="daily" || state.mode==="multiplayer");
   if(!currentUser && state.mode!=="daily" && state.mode!=="multiplayer")saveGuestRaceStats();
@@ -765,7 +791,7 @@ function finishRace() {
   }
   if(currentUser) {
     const userId=currentUser.uid;
-    const raceSeconds=state.seconds;
+    const raceSeconds=state.realSeconds||state.seconds;
     const raceClicks=state.clicks;
     const baseXp=awardXp(raceClicks,raceSeconds,state.difficulty);
     const bonusDate=utcDateKey();
@@ -778,6 +804,8 @@ function finishRace() {
         races:Number(profile.races||0)+1,
         wins:Number(profile.wins||0)+1,
         xp:Number(profile.xp||0)+baseXp+(bonusEligible&&profile.dailyBonusClaimedDate!==bonusDate?30:0),
+        spendableXp:Number(profile.spendableXp||0)+baseXp+(bonusEligible&&profile.dailyBonusClaimedDate!==bonusDate?30:0),
+        ...(state.timeFreezeRefundPending?{powerupInventory:{...normalizeInventory(profile.powerupInventory||{}),timeFreeze:normalizeInventory(profile.powerupInventory||{}).timeFreeze+1}}:{}),
         ...(bonusEligible&&profile.dailyBonusClaimedDate!==bonusDate?{dailyBonusClaimedDate:bonusDate}:{}),
         bestRaceTime:profile.bestRaceTime==null?raceSeconds:Math.min(Number(profile.bestRaceTime),raceSeconds),
         fewestRaceClicks:profile.fewestRaceClicks==null?raceClicks:Math.min(Number(profile.fewestRaceClicks),raceClicks),
@@ -786,7 +814,7 @@ function finishRace() {
       },{merge:true});
     }).then(()=>profileRef.get()).then(async snapshot=>{
       const profile=snapshot.data()||{};
-      renderProfileProgress(profile);renderProgression(profile);renderDailyBonus(profile.dailyBonusClaimedDate===bonusDate);
+      renderProfileProgress(profile);renderProgression(profile);renderDailyBonus(profile.dailyBonusClaimedDate===bonusDate);if(state.timeFreezeRefundPending)setToast("Time Freeze refunded because it would have changed a time-based reward.");loadPowerupWallet();
       await db.collection("publicProfiles").doc(userId).set({
         uid:userId,username:currentUsername,races:Number(profile.races||0),wins:Number(profile.wins||0),xp:Number(profile.xp||0),longestStreak:Number(profile.longestStreak||0),customTitle:profile.customTitle||"",
         bestRaceTime:profile.bestRaceTime??null,fewestRaceClicks:profile.fewestRaceClicks??null,
@@ -972,6 +1000,7 @@ async function beginRace() {
     state.clicks = 0;
     state.seconds = 0;
     state.loading = false;
+    resetRacePowerups($("soloPowerupsEnabled")?.checked!==false);
     const customRoute = await chooseCustomRoute();
     const [start, goal] = customRoute || await chooseRoute();
     state.start = start;
@@ -1111,18 +1140,27 @@ window.addEventListener("message", async event => {
   }
   if (state.loading) return;
   if (normaliseTitle(title) === normaliseTitle(state.goal)) {
-    state.clicks += 1;
+    if(state.clickShieldActive)state.clickShieldActive=false;else state.clicks += 1;
     state.current = title;
     updateStats();
     finishRace();
     return;
   }
   recordArticleVisit(title);
-  await loadArticle(title, true);
+  const countThisClick=!state.clickShieldActive;state.clickShieldActive=false;
+  await loadArticle(title, countThisClick);
   updateRoomPlayer(false,{scrollY:0,scrollPercent:0});
 });
 
 updateStats();
+$("powerupShopButton")?.addEventListener("click",openPowerupShop);
+$("powerupShopClose")?.addEventListener("click",()=>$("powerupShopModal").classList.add("hidden"));
+$("powerupShopModal")?.addEventListener("click",e=>{if(e.target===$("powerupShopModal"))$("powerupShopModal").classList.add("hidden");});
+$("exchangeXpButton")?.addEventListener("click",exchangeSpendableXp);
+$("soloPowerupsEnabled")?.addEventListener("change",()=>localStorage.setItem("wikirace-powerups-enabled",String($("soloPowerupsEnabled").checked)));
+$("multiplayerPowerupsEnabled")?.addEventListener("change",()=>localStorage.setItem("wikirace-multiplayer-powerups-enabled",String($("multiplayerPowerupsEnabled").checked)));
+if($("soloPowerupsEnabled"))$("soloPowerupsEnabled").checked=localStorage.getItem("wikirace-powerups-enabled")!=="false";
+if($("multiplayerPowerupsEnabled"))$("multiplayerPowerupsEnabled").checked=localStorage.getItem("wikirace-multiplayer-powerups-enabled")!=="false";
 $("favoriteArticleButton")?.addEventListener("click",toggleFavoriteArticle);
 $("leaderboardButton")?.addEventListener("click",()=>openLeaderboard("global"));
 $("leaderboardClose")?.addEventListener("click",()=>$("leaderboardModal").classList.add("hidden"));
@@ -1219,6 +1257,7 @@ auth.onAuthStateChanged(async user => {
   if (user) { try { await profileFor(user); await claimGuestRaceStats(user); listenForGameInvites(); startPresenceTracking(); } catch(e) { setToast(authError(e)); } }
   else { if(matchmakingActive)cancelRandomMatch(false); if(presenceHeartbeat)clearInterval(presenceHeartbeat); presenceHeartbeat=null; document.removeEventListener("visibilitychange",handlePresenceVisibility); stopFriendPresenceListeners(); if(inviteUnsubscribe)inviteUnsubscribe(); inviteUnsubscribe=null; $("gameInviteNotifications").replaceChildren(); detachRoomListeners(); activeRoom=null; activeRoomCode=""; $("roomStatus").classList.add("hidden"); }
   renderAccount();
+  if(user)loadPowerupWallet();else{powerupInventory={};spendableXp=0;gameTokens=0;renderPowerupWallet();}
   if(!user)renderDailyBonus(false);
   loadDailyChallenge();
 });
@@ -2013,7 +2052,7 @@ async function tryFindRandomOpponent(){
       .where("status","==","waiting")
       .limit(20).get();
     const candidates=waiting.docs.filter(doc=>
-      doc.id!==currentUser.uid && doc.data().difficulty===state.difficulty
+      doc.id!==currentUser.uid && doc.data().difficulty===state.difficulty && doc.data().powerupsEnabled===($("multiplayerPowerupsEnabled")?.checked!==false)
     );
     for(const candidate of candidates){
       const roomRef=db.collection("rooms").doc();
@@ -2027,7 +2066,7 @@ async function tryFindRandomOpponent(){
         tx.set(roomRef,{
           code,hostUid:currentUser.uid,status:"waiting",
           createdAt:firebase.firestore.FieldValue.serverTimestamp(),
-          start:"",goal:"",difficulty:state.difficulty,matchType:"random"
+          start:"",goal:"",difficulty:state.difficulty,options:{powerupsEnabled:$("multiplayerPowerupsEnabled")?.checked!==false,blockFind:raceOptions.blockFind,blockBrowserNavigation:raceOptions.blockBrowserNavigation,backEnabled},matchType:"random"
         });
         tx.set(roomRef.collection("players").doc(currentUser.uid),{
           uid:currentUser.uid,username:playerName,clicks:0,seconds:0,current:"",finished:false,ready:false
@@ -2064,7 +2103,7 @@ async function startRandomMatch(){
     matchmakingRef=ref;
     await ref.set({
       uid:currentUser.uid,username:currentUsername||await username(),
-      status:"waiting",difficulty:state.difficulty,
+      status:"waiting",difficulty:state.difficulty,powerupsEnabled:$("multiplayerPowerupsEnabled")?.checked!==false,
       createdAt:firebase.firestore.FieldValue.serverTimestamp()
     });
     matchmakingUnsubscribe=ref.onSnapshot(snapshot=>{
@@ -2086,7 +2125,7 @@ async function createRoom(){
   if(!currentUser)return authMode("signin");
   try{
     const code=makeRoomCode(), name=await username(), ref=db.collection("rooms").doc();
-    await ref.set({code,hostUid:currentUser.uid,status:"waiting",createdAt:firebase.firestore.FieldValue.serverTimestamp(),start:"",goal:"",difficulty:"medium"});
+    await ref.set({code,hostUid:currentUser.uid,status:"waiting",createdAt:firebase.firestore.FieldValue.serverTimestamp(),start:"",goal:"",difficulty:state.difficulty||"medium",options:{powerupsEnabled:$("multiplayerPowerupsEnabled")?.checked!==false,blockFind:raceOptions.blockFind,blockBrowserNavigation:raceOptions.blockBrowserNavigation,backEnabled}});
     await ref.collection("players").doc(currentUser.uid).set({uid:currentUser.uid,username:name,clicks:0,seconds:0,current:"",finished:false,ready:false});
     await listenRoom(ref.id,code);
   }catch(e){setToast(authError(e));}
@@ -2109,7 +2148,7 @@ async function startRoomRace(){
   const b=$("roomStatus").querySelector(".room-start-button");if(b)b.disabled=true;
   try{
     const custom=await chooseCustomRoute(), route=custom || await chooseRoute();
-    await db.collection("rooms").doc(activeRoom.id).update({start:route[0],goal:route[1],difficulty:state.difficulty,options:{blockFind:raceOptions.blockFind,blockBrowserNavigation:raceOptions.blockBrowserNavigation,backEnabled},status:"racing",startedAt:firebase.firestore.FieldValue.serverTimestamp()});
+    await db.collection("rooms").doc(activeRoom.id).update({start:route[0],goal:route[1],difficulty:state.difficulty,options:{blockFind:raceOptions.blockFind,blockBrowserNavigation:raceOptions.blockBrowserNavigation,backEnabled,powerupsEnabled:$("multiplayerPowerupsEnabled")?.checked!==false},status:"racing",startedAt:firebase.firestore.FieldValue.serverTimestamp()});
   }catch(e){setToast(authError(e));if(b)b.disabled=false;}
 }
 function renderRoomChat(messages){
@@ -2165,7 +2204,7 @@ $("chatClose").addEventListener("click",()=>setRoomChatOpen(false));
 
 async function launchSharedRace(room){
   stopTimer();if(state.requestController)state.requestController.abort();
-  state.mode="multiplayer";state.dailyDate=null;
+  state.mode="multiplayer";state.dailyDate=null;resetRacePowerups(room.options?.powerupsEnabled===true);
   multiplayerLocalFinished=false;multiplayerEnded=false;opponentFinishPromptedFor=new Set();opponentDisconnectNotified=false;lastRoomProgressSecond=-1;closeOpponentFinishedPrompt();
   state.clicks=0;state.seconds=0;state.loading=false;state.difficulty=room.difficulty||"medium";
   state.start=room.start;state.goal=room.goal;state.current=room.start;state.history=[];state.historyIndex=-1;
@@ -2182,7 +2221,7 @@ async function updateRoomPlayer(finished=false,extra={}){
   if(!activeRoom || activeRoom.status!=="racing" || !currentUser)return;
   if((multiplayerLocalFinished||multiplayerEnded)&&!finished&&!Object.keys(extra).length)return;
   try{
-    const data={uid:currentUser.uid,username:currentUsername||await username(),clicks:state.clicks,seconds:state.seconds,current:state.current||"",finished,...extra,updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
+    const data={uid:currentUser.uid,username:currentUsername||await username(),clicks:state.clicks,seconds:state.realSeconds||state.seconds,current:state.current||"",finished,...extra,updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
     if(finished)data.finishedAt=firebase.firestore.FieldValue.serverTimestamp();
     await activeRoomRef().collection("players").doc(currentUser.uid).set(data,{merge:true});
   }catch(e){console.warn(e);}
@@ -2203,6 +2242,7 @@ $("guestSignupButton").addEventListener("click",()=>authMode("signup"));
 $("dailyRunButton").addEventListener("click",startDailyRun);
 $("dailyHistoryButton").addEventListener("click",openDailyHistory);
 renderDailyBonus();
+renderPowerupWallet();
 $("dailyHistoryClose").addEventListener("click",()=>$("dailyHistoryModal").classList.add("hidden"));
 $("dailyHistoryModal").addEventListener("click",event=>{if(event.target===$("dailyHistoryModal"))$("dailyHistoryModal").classList.add("hidden");});
 $("randomMatchButton").addEventListener("click",startRandomMatch);
