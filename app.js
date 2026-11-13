@@ -1163,7 +1163,7 @@ async function profileFor(user) {
     races:Number(profile.races||0),wins:Number(profile.wins||0),
     bestRaceTime:profile.bestRaceTime??null,fewestRaceClicks:profile.fewestRaceClicks??null,
     currentStreak:Number(profile.currentStreak||0),longestStreak:Number(profile.longestStreak||0),
-    totalDailyRuns:Number(profile.totalDailyRuns||0),streakBadges:profile.streakBadges||[],
+    totalDailyRuns:Number(profile.totalDailyRuns||0),raceHistory:Array.isArray(profile.raceHistory)?profile.raceHistory.slice(-50):[],dailyHistory:Array.isArray(profile.dailyHistory)?profile.dailyHistory.slice(0,60):[],streakBadges:profile.streakBadges||[],
     profileFrame:profile.profileFrame||"none",createdAt:profile.createdAt||null
   },{merge:true}).catch(error=>console.warn("Could not sync public profile:",error));
   const key = usernameKey(currentUsername);
@@ -1245,7 +1245,7 @@ function renderProfileDaily(history){
 }
 async function openProfile(uid,name,isOwn=false){
  if(!uid)return;$("profileModal").classList.remove("hidden");$("profileTitle").textContent=name||"WikiRace player";$("profileAvatar").textContent=(name||"W").trim().charAt(0).toUpperCase();$("profileJoined").textContent="Loading profile…";$("profileInviteButton").classList.add("hidden");
- try{const snap=await db.collection(isOwn?"users":"publicProfiles").doc(uid).get();if(!snap.exists)throw new Error("This profile is not available.");const p=snap.data()||{};
+ try{const snap=await db.collection(isOwn?"users":"publicProfiles").doc(uid).get();if(!snap.exists)throw new Error("This profile is not available.");const p=snap.data()||{};if(isOwn&&(!Array.isArray(p.raceHistory)||!p.raceHistory.length)){const publicSnap=await db.collection("publicProfiles").doc(uid).get();const publicData=publicSnap.exists?publicSnap.data()||{}:{};if(Array.isArray(publicData.raceHistory)&&publicData.raceHistory.length)p.raceHistory=publicData.raceHistory;if((!Array.isArray(p.dailyHistory)||!p.dailyHistory.length)&&Array.isArray(publicData.dailyHistory))p.dailyHistory=publicData.dailyHistory;}
  $("profileTitle").textContent=p.username||name||"WikiRace player";$("profileAvatar").textContent=(p.username||name||"W").trim().charAt(0).toUpperCase();$("profileJoined").textContent=p.createdAt?.toDate?.()?("Member since "+p.createdAt.toDate().toLocaleDateString(undefined,{month:"long",year:"numeric"})):(isOwn?"Your WikiRace profile":"WikiRace player");
  $("viewProfileRaces").textContent=String(p.races||0);$("viewProfileWins").textContent=String(p.wins||0);$("viewProfileBestTime").textContent=p.bestRaceTime==null?"—":formatTime(p.bestRaceTime);$("viewProfileFewest").textContent=p.fewestRaceClicks==null?"—":String(p.fewestRaceClicks);
  $("viewProfileStreak").textContent=String(p.currentStreak||0);$("viewProfileLongest").textContent=String(p.longestStreak||0);const badges=p.streakBadges||[];$("viewProfileBadges").replaceChildren();
