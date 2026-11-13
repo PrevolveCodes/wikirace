@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://upload.wikimedia.org">
   <link rel="icon" type="image/png" href="logo.png">
   <link rel="apple-touch-icon" href="logo.png">
-  <link rel="stylesheet" href="style.css?v=daily-layout-3">
+  <link rel="stylesheet" href="style.css?v=guest-stats-1">
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
@@ -134,6 +134,11 @@
           <h1>You did it!</h1>
           <p class="win-copy">You navigated from <strong id="winStart">Start</strong> to <strong id="winGoal">Finish</strong>.</p>
           <div class="win-stats"><div><strong id="finalTime">00:00</strong><span>TIME</span></div><div><strong id="finalClicks">0</strong><span>CLICKS</span></div></div>
+          <section id="guestSignupPrompt" class="guest-signup-prompt hidden" aria-live="polite">
+            <strong>Want to keep your WikiRace stats?</strong>
+            <p>Create a free account to save your race records and track your progress.</p>
+            <button class="secondary-button" id="guestSignupButton">Create a free account</button>
+          </section>
           <section id="multiplayerResults" class="multiplayer-results hidden" aria-live="polite">
             <h2>Race results</h2>
             <div id="multiplayerResultsList"></div>
