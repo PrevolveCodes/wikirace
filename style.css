@@ -502,10 +502,14 @@ html[data-theme="dark"] .daily-challenge-card .daily-route{background:var(--surf
 #homeScreen:not(.show-multiplayer):not(.show-daily) .eyebrow{
   margin-bottom:6px;
 }
+/* Keep the Solo intro as one tight text group. */
+#homeScreen:not(.show-multiplayer):not(.show-daily) .eyebrow{
+  margin-bottom:4px;
+}
 #homeScreen:not(.show-multiplayer):not(.show-daily) .hero h1{
-  line-height:1.06;
+  line-height:1.02;
   margin-bottom:8px;
 }
 #homeScreen:not(.show-multiplayer):not(.show-daily) .hero-copy{
-  line-height:1.45;
+  line-height:1.35;
 }
