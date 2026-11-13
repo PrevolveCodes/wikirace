@@ -1222,15 +1222,17 @@ function setFriendsTab(tab){
   $("friendsListView").classList.toggle("active",tab==="friends");
 }
 function renderProfileLineChart(history){
- const host=$("profileRaceChart");host.replaceChildren();const values=history.map(x=>Number(x.clicks||0)).filter(Number.isFinite);
- if(values.length<2){const p=document.createElement("p");p.className="profile-empty";p.textContent=values.length?"Complete another race to see your trend.":"Complete races to build your chart.";host.appendChild(p);return;}
- const w=720,h=220,pad=28,min=Math.min(...values),max=Math.max(...values),range=Math.max(1,max-min),ns="http://www.w3.org/2000/svg";
- const pts=values.map((v,i)=>({x:pad+i*(w-pad*2)/(values.length-1),y:h-pad-(v-min)/range*(h-pad*2)}));
+ const host=$("profileRaceChart");host.replaceChildren();
+ const races=history.filter(x=>Number.isFinite(Number(x.clicks)));
+ const values=races.map(x=>Number(x.clicks));
+ const w=720,h=220,pad=34,ns="http://www.w3.org/2000/svg";
+ const min=values.length?Math.min(0,...values):0,max=values.length?Math.max(...values):10,range=Math.max(5,max-min);
+ const pts=values.map((v,i)=>({x:pad+(values.length===1?.5:i/(values.length-1))*(w-pad*2),y:h-pad-(v-min)/range*(h-pad*2)}));
  const svg=document.createElementNS(ns,"svg");svg.setAttribute("viewBox",`0 0 ${w} ${h}`);svg.setAttribute("role","img");svg.setAttribute("aria-label","Clicks per race, oldest to newest");
  [0,1,2,3].forEach(i=>{const line=document.createElementNS(ns,"line"),y=pad+i*(h-pad*2)/3;line.setAttribute("x1",pad);line.setAttribute("x2",w-pad);line.setAttribute("y1",y);line.setAttribute("y2",y);line.setAttribute("class","profile-chart-gridline");svg.appendChild(line);});
- const path=document.createElementNS(ns,"path");path.setAttribute("d",pts.map((p,i)=>(i?"L":"M")+p.x+" "+p.y).join(" "));path.setAttribute("class","profile-chart-line");svg.appendChild(path);
- pts.forEach((p,i)=>{const dot=document.createElementNS(ns,"circle");dot.setAttribute("cx",p.x);dot.setAttribute("cy",p.y);dot.setAttribute("r",4);dot.setAttribute("class","profile-chart-dot");const t=document.createElementNS(ns,"title");t.textContent="Race "+(i+1)+": "+values[i]+" clicks";dot.appendChild(t);svg.appendChild(dot);});host.appendChild(svg);
- const labels=document.createElement("div");labels.className="profile-chart-labels";labels.innerHTML="<span>Oldest</span><span>Most recent</span>";host.appendChild(labels);
+ if(pts.length>1){const path=document.createElementNS(ns,"path");path.setAttribute("d",pts.map((p,i)=>(i?"L":"M")+p.x+" "+p.y).join(" "));path.setAttribute("class","profile-chart-line");svg.appendChild(path);}
+ pts.forEach((p,i)=>{const dot=document.createElementNS(ns,"circle");dot.setAttribute("cx",p.x);dot.setAttribute("cy",p.y);dot.setAttribute("r",5);dot.setAttribute("class","profile-chart-dot");const t=document.createElementNS(ns,"title");t.textContent="Race "+(i+1)+": "+values[i]+" clicks";dot.appendChild(t);svg.appendChild(dot);});host.appendChild(svg);
+ const labels=document.createElement("div");labels.className="profile-chart-labels";labels.innerHTML=values.length?'<span>Oldest</span><span>Most recent</span>':'<span>No race data yet</span><span>Clicks per race</span>';host.appendChild(labels);
 }
 function renderProfileRaces(history){
  const list=$("profileRecentRaces");list.replaceChildren();$("profileRaceCount").textContent=history.length+" races";
@@ -1239,7 +1241,7 @@ function renderProfileRaces(history){
 }
 function renderProfileDaily(history){
  const host=$("profileDailyHistory");host.replaceChildren();if(!history.length){const p=document.createElement("p");p.className="profile-empty";p.textContent="No Daily Runs recorded yet.";host.appendChild(p);return;}
- history.slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8).forEach(r=>{const row=document.createElement("div");row.className="profile-daily-row";const date=document.createElement("strong");date.textContent=r.date;const score=document.createElement("span");score.textContent=r.clicks+" clicks · "+formatTime(r.seconds);row.append(date,score);host.appendChild(row);});
+ history.slice().sort((a,b)=>(b.date||"").localeCompare(a.date||"")).slice(0,8).forEach(r=>{const row=document.createElement("div");row.className="profile-daily-row";const route=document.createElement("div");route.className="profile-race-route";const name=document.createElement("strong");name.textContent=(r.start||"Starting article")+" → "+(r.goal||"Destination");const date=document.createElement("span");date.textContent=r.date?new Date(r.date+"T00:00:00Z").toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"}):"Date unavailable";route.append(name,date);const score=document.createElement("span");score.textContent=r.clicks+" clicks · "+formatTime(r.seconds);row.append(route,score);host.appendChild(row);});
 }
 async function openProfile(uid,name,isOwn=false){
  if(!uid)return;$("profileModal").classList.remove("hidden");$("profileTitle").textContent=name||"WikiRace player";$("profileAvatar").textContent=(name||"W").trim().charAt(0).toUpperCase();$("profileJoined").textContent="Loading profile…";$("profileInviteButton").classList.add("hidden");
