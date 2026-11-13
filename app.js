@@ -1458,7 +1458,7 @@ async function openProfile(uid,name,isOwn=false){
    const badge=document.createElement("span");badge.className="profile-badge";badge.textContent=formatDailyBadge(m);$("viewProfileBadges").appendChild(badge);
   });
   const races=Array.isArray(p.raceHistory)?p.raceHistory:[];
-  profileWeekOffset=0;window.profileDisplayedRaceHistory=races;renderProfileLineChart(races);renderProfileRaces(races);renderProfileDaily(Array.isArray(p.dailyHistory)?p.dailyHistory:[]);
+  profilePeriodOffset=0;window.profileDisplayedRaceHistory=races;renderProfileLineChart(races);renderProfileRaces(races);renderProfileDaily(Array.isArray(p.dailyHistory)?p.dailyHistory:[]);
   $("profileInviteButton").classList.toggle("hidden",isOwn||!currentUser);
   $("profileInviteButton").onclick=()=>inviteFriend(uid,p.username||name||"player");
  }catch(error){
