@@ -2257,6 +2257,17 @@ $("joinRoomButton").addEventListener("click",joinRoom);
 $("joinCodeInput").addEventListener("input",()=>{$("joinCodeInput").value=$("joinCodeInput").value.toUpperCase().replace(/[^A-HJ-NP-Z2-9]/g,"").slice(0,6);});
 
 
+// Show the XP reset announcement once per browser.
+const xpResetPopup = $("xpResetAnnouncement");
+const xpResetDismissedKey = "wikirace-xp-reset-announcement-v1";
+if (xpResetPopup && localStorage.getItem(xpResetDismissedKey) !== "true") {
+  window.setTimeout(() => xpResetPopup.classList.remove("hidden"), 700);
+}
+$("closeXpResetAnnouncement")?.addEventListener("click", () => {
+  xpResetPopup?.classList.add("hidden");
+  localStorage.setItem(xpResetDismissedKey, "true");
+});
+
 // Show the Wikipedia donation message once per browser unless dismissed.
 const donationPopup = $("donationPopup");
 const donationDismissedKey = "wikirace-donation-dismissed";
