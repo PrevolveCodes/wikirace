@@ -363,17 +363,33 @@ async function getArticleHtml(title){
     if(!response.ok)throw new Error(response.status===404?"That article could not be found.":"Wikipedia returned an error. Please try another link.");
     const html=await response.text();
     articleHtmlCache.set(key,html);
-    while(articleHtmlCache.size>18)articleHtmlCache.delete(articleHtmlCache.keys().next().value);
+    while(articleHtmlCache.size>32)articleHtmlCache.delete(articleHtmlCache.keys().next().value);
     return html;
   })();
   articleHtmlPending.set(key,request);
   try{return await request;}finally{articleHtmlPending.delete(key);}
 }
+const articlePrefetchQueue = [];
+const articlePrefetchQueued = new Set();
+let articlePrefetchActive = 0;
 function prefetchArticle(title){
   if(!title)return;
   const key=normaliseTitle(title);
-  if(articleHtmlCache.has(key)||articleHtmlPending.has(key))return;
-  getArticleHtml(title).catch(()=>{});
+  if(articleHtmlCache.has(key)||articleHtmlPending.has(key)||articlePrefetchQueued.has(key))return;
+  articlePrefetchQueued.add(key);
+  articlePrefetchQueue.push({title,key});
+  pumpArticlePrefetchQueue();
+}
+function pumpArticlePrefetchQueue(){
+  while(articlePrefetchActive<3&&articlePrefetchQueue.length){
+    const item=articlePrefetchQueue.shift();
+    articlePrefetchActive++;
+    getArticleHtml(item.title).catch(()=>{}).finally(()=>{
+      articlePrefetchActive--;
+      articlePrefetchQueued.delete(item.key);
+      pumpArticlePrefetchQueue();
+    });
+  }
 }
 
 async function loadArticle(title, countClick = false) {
@@ -403,9 +419,9 @@ updateBackButton();
     frame.className = "wiki-article-frame";
     frame.title = title + " — Wikipedia article";
     frame.setAttribute("sandbox", "allow-scripts allow-popups");
-    const stylesheetLinks = prepared.stylesheets.map(href => '<link rel="stylesheet" href="' + href.replace(/&/g, "&amp;").replace(/"/g, "&quot;") + '">').join("");
+    const stylesheetLinks = prepared.stylesheets.map(href => '<link rel="preload" as="style" href="' + href.replace(/&/g, "&amp;").replace(/"/g, "&quot;") + '" onload="this.onload=null;this.rel=\'stylesheet\'">').join("");
     const articleMarkup = prepared.wrapper.outerHTML;
-    frame.srcdoc = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' + stylesheetLinks + '<style>html,body{margin:0;padding:0;background:#fff;color:#202122;font-family:Arial,Helvetica,sans-serif}body{padding:24px clamp(18px,4vw,48px) 48px;box-sizing:border-box}.mw-body{max-width:none!important;margin:0 auto!important}.mw-body-content{font-family:Arial,Helvetica,sans-serif}img{max-width:100%;height:auto}</style></head><body>' + articleMarkup + '<script>function reportHeight(){parent.postMessage({type:"wikirace-height",height:Math.ceil(document.documentElement.scrollHeight)},"*")}const heightObserver=new ResizeObserver(reportHeight);heightObserver.observe(document.documentElement);window.addEventListener("load",reportHeight);document.addEventListener("pointerover",function(e){const a=e.target.closest("a[data-wiki-title]");if(a&&!a.dataset.prefetched){a.dataset.prefetched="1";parent.postMessage({type:"wikirace-prefetch",title:a.dataset.wikiTitle},"*");}});document.addEventListener("click",function(e){const a=e.target.closest("a[data-wiki-title]");if(a){e.preventDefault();parent.postMessage({type:"wikirace-navigation",title:a.dataset.wikiTitle},"*");}});reportHeight();' +
+    frame.srcdoc = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' + stylesheetLinks + '<style>html,body{margin:0;padding:0;background:#fff;color:#202122;font-family:Arial,Helvetica,sans-serif}body{padding:24px clamp(18px,4vw,48px) 48px;box-sizing:border-box}.mw-body{max-width:none!important;margin:0 auto!important}.mw-body-content{font-family:Arial,Helvetica,sans-serif}img{max-width:100%;height:auto}</style></head><body>' + articleMarkup + '<script>function reportHeight(){parent.postMessage({type:"wikirace-height",height:Math.ceil(document.documentElement.scrollHeight)},"*")}const heightObserver=new ResizeObserver(reportHeight);heightObserver.observe(document.documentElement);window.addEventListener("load",reportHeight);function prefetchNearbyArticles(){Array.from(document.querySelectorAll("a[data-wiki-title]")).slice(0,12).forEach(function(a){if(!a.dataset.prefetched){a.dataset.prefetched="1";parent.postMessage({type:"wikirace-prefetch",title:a.dataset.wikiTitle},"*");}})}prefetchNearbyArticles();document.addEventListener("pointerover",function(e){const a=e.target.closest("a[data-wiki-title]");if(a&&!a.dataset.prefetched){a.dataset.prefetched="1";parent.postMessage({type:"wikirace-prefetch",title:a.dataset.wikiTitle},"*");}});document.addEventListener("click",function(e){const a=e.target.closest("a[data-wiki-title]");if(a){e.preventDefault();parent.postMessage({type:"wikirace-navigation",title:a.dataset.wikiTitle},"*");}});reportHeight();' +
       (raceOptions.blockFind ? 'document.addEventListener("keydown",function(e){var k=e.key.toLowerCase();if(((e.ctrlKey||e.metaKey)&&(k==="f"||k==="g"))||k==="f3"){e.preventDefault();e.stopImmediatePropagation();}},true);' : '') +
       (raceOptions.blockBrowserNavigation ? 'document.addEventListener("keydown",function(e){var k=e.key.toLowerCase();if((e.altKey&&(k==="arrowleft"||k==="arrowright"))||(k==="backspace"&&!/input|textarea|select/i.test(e.target.tagName))){e.preventDefault();e.stopImmediatePropagation();}},true);' : '') +
       '</script></body></html>';
