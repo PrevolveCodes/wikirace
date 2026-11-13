@@ -595,3 +595,6 @@ html[data-theme="dark"] .daily-challenge-card .daily-route{background:var(--surf
 .profile-week-controls{display:flex;align-items:center;justify-content:center;gap:16px;margin:14px 0 2px}.profile-week-controls strong{font-size:12px;min-width:145px;text-align:center}.profile-week-controls button:disabled{opacity:.35;cursor:default}
 .profile-week-summary{display:flex;gap:22px;padding:6px 0 10px;color:var(--muted);font-size:11px}.profile-week-summary strong{color:var(--text);font-size:15px;margin-right:4px}.profile-chart-bar{fill:var(--blue)}.profile-week-labels{padding-left:20px;padding-right:20px;gap:0}.profile-week-labels span{flex:1;text-align:center}
 @media(max-width:560px){.profile-panel-heading{align-items:flex-start;gap:10px}.profile-week-controls{gap:8px}.profile-week-controls strong{min-width:120px}.profile-chart-types button{padding:6px 8px}}
+
+.profile-period-types{display:flex;gap:4px;margin:12px 0 2px}.profile-period-types button{border:1px solid var(--line);background:var(--surface);color:var(--text);padding:6px 12px;font:inherit;font-size:11px;cursor:pointer}.profile-period-types button.active{background:var(--text);color:var(--bg);border-color:var(--text)}
+.profile-week-labels span{min-width:0;white-space:nowrap}.profile-week-labels{overflow:hidden}
