@@ -1439,7 +1439,7 @@ async function saveProfileSettings(){
    tx.set(userRef,updates,{merge:true});
    tx.set(nextIndexRef,{uid:currentUser.uid,username:nextName});
    if(oldKey&&oldKey!==nextKey)tx.delete(oldIndexRef);
-   tx.set(publicRef,{uid:currentUser.uid,username:nextName,profileBio:nextBio,photoDataUrl:photo},{merge:true});
+   tx.set(publicRef,{uid:currentUser.uid,username:nextName,profileBio:nextBio,photoDataUrl:photo,customTitle:nextTitle},{merge:true});
   });
   currentUsername=nextName;
   setProfileTitle(nextName);$("profileBio").textContent=nextBio||"No bio added yet.";
@@ -1495,8 +1495,7 @@ async function openProfile(uid,name,isOwn=false){
    const publicSnap=await db.collection("publicProfiles").doc(uid).get();
    if(!publicSnap.exists)throw new Error("This player’s public profile has not been created yet. Ask them to sign in and refresh WikiRace.");
    p=publicSnap.data()||{};
-   db.collection("publicProfiles").doc(uid).set({profileViews:firebase.firestore.FieldValue.increment(1)},{merge:true}).catch(()=>{});
-   p.profileViews=Number(p.profileViews||0)+1;
+   
   }
   setProfileTitle(p.username||name||"WikiRace player");
   const ownerBadge=$("profileOwnerBadge");
@@ -1505,7 +1504,7 @@ async function openProfile(uid,name,isOwn=false){
   $("profileBio").textContent=p.profileBio||"No bio added yet.";
   $("profileEditButton").classList.toggle("hidden",!isOwn);
   $("profileSettingsPanel").classList.add("hidden");
-  $("profileJoined").textContent=(isOwn?(p.createdAt?.toDate?.()?("Member since "+p.createdAt.toDate().toLocaleDateString(undefined,{month:"long",year:"numeric"})):"Your WikiRace profile"):(Number(p.profileViews||0)+" profile views"));
+  $("profileJoined").textContent=p.createdAt?.toDate?.()?("Member since "+p.createdAt.toDate().toLocaleDateString(undefined,{month:"long",year:"numeric"})):(isOwn?"Your WikiRace profile":"WikiRace player");
   $("viewProfileRaces").textContent=String(p.races||0);
   $("viewProfileWins").textContent=String(p.wins||0);
   $("viewProfileBestTime").textContent=p.bestRaceTime==null?"—":formatTime(p.bestRaceTime);
