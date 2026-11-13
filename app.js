@@ -983,11 +983,23 @@ function setHomeTab(tab) {
   $("accountPanel").setAttribute("aria-hidden", String(!multiplayer));
   $("dailyPanel").setAttribute("aria-hidden", String(!daily));
 
-  // Animate only the newly visible page, after its display state has changed.
+  // Use the Web Animations API so the transition does not depend on CSS animation classes.
   const activeView = daily ? $("dailyPanel") : $("homeScreen").querySelector(".hero");
   activeView.classList.remove("tab-swipe-from-left", "tab-swipe-from-right");
-  void activeView.offsetWidth;
-  activeView.classList.add(direction === "right" ? "tab-swipe-from-right" : "tab-swipe-from-left");
+  if (activeView && typeof activeView.animate === "function") {
+    activeView.animate(
+      direction === "right"
+        ? [
+            { opacity: 0.35, transform: "translateX(110px)" },
+            { opacity: 1, transform: "translateX(0)" }
+          ]
+        : [
+            { opacity: 0.35, transform: "translateX(-110px)" },
+            { opacity: 1, transform: "translateX(0)" }
+          ],
+      { duration: 520, easing: "cubic-bezier(0.16, 1, 0.3, 1)" }
+    );
+  }
 
   window.scrollTo({ top: 0, behavior: "instant" });
 }
