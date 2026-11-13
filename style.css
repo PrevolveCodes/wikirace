@@ -606,3 +606,17 @@ html[data-theme="dark"] .daily-challenge-card .daily-route{background:var(--surf
 .profile-settings-fields select{width:100%;padding:10px 11px;border:1px solid var(--line);background:var(--bg);color:var(--text);font:13px Arial,sans-serif}
 
 .spectate-controls{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}.spectator-modal{max-height:82vh;overflow:auto}.spectator-players{display:flex;flex-direction:column;margin-top:15px}.spectator-player{display:grid;grid-template-columns:35px minmax(0,1fr) auto;align-items:center;gap:12px;padding:13px 5px;border-bottom:1px solid var(--line)}.spectator-player>strong{color:var(--muted)}.spectator-player-info{display:flex;flex-direction:column;gap:4px;min-width:0}.spectator-player-info b{font-size:13px}.spectator-player-info span,.spectator-player small{font-size:11px;color:var(--muted);overflow-wrap:anywhere}
+
+
+/* Expanded live spectator */
+.spectator-livebar{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;margin:12px 0;border:1px solid var(--line);background:var(--surface)}
+.spectator-livebar span{font-size:10px;letter-spacing:.1em;color:var(--muted)}.spectator-livebar strong{font:400 22px Georgia,serif;font-variant-numeric:tabular-nums}
+.spectator-player{width:100%;text-align:left;background:var(--surface);color:var(--text);font:inherit;cursor:pointer;border-left:3px solid transparent}
+.spectator-player.selected{background:var(--surface-soft);border-left-color:var(--blue)}.spectator-player:hover{border-color:var(--blue)}
+.spectator-player-info{display:flex;flex-direction:column;gap:5px;min-width:0}
+.spectator-scroll-track{display:block;width:100%;height:4px;background:var(--line);overflow:hidden}.spectator-scroll-track i{display:block;height:100%;background:var(--blue);transition:width .2s}
+.spectator-player-stats{white-space:nowrap;font-variant-numeric:tabular-nums}
+.spectator-viewer{margin-top:18px;border:1px solid var(--line);background:var(--surface)}
+.spectator-viewer-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--line)}.spectator-viewer-heading strong{font-size:12px}
+.spectator-article{height:min(58vh,560px);min-height:280px;overflow:hidden;background:#fff}.spectator-article-frame{width:100%;height:100%;border:0;background:#fff}
+@media(max-width:560px){.spectator-player{grid-template-columns:28px minmax(0,1fr);gap:8px}.spectator-player-stats{grid-column:2}.spectator-viewer-heading{align-items:flex-start;flex-direction:column}}
