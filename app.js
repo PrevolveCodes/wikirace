@@ -1255,15 +1255,15 @@ function renderProfileLineChart(history){
  if(profilePeriod==="day"){
   start=new Date(now.getFullYear(),now.getMonth(),now.getDate());start=shiftProfileDate(start,profilePeriodOffset,"day");end=shiftProfileDate(start,1,"day");
   label=profilePeriodOffset===0?"Today":start.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"});
-  buckets=Array.from({length:24},(_,i)=>({key:i,label:i===0?"12 AM":i<12?i+" AM":i===12?"12 PM":(i-12)+" PM",clicks:[],races:[]}));
+  buckets=Array.from({length:24},(_,i)=>({key:i,label:i===0?"12 AM":i<12?i+" AM":i===12?"12 PM":(i-12)+" PM",clicks:[],seconds:[],races:[]}));
  }else if(profilePeriod==="week"){
   start=shiftProfileDate(profileWeekStart(now),profilePeriodOffset*7,"day");end=shiftProfileDate(start,7,"day");
   label=profilePeriodOffset===0?"This week":start.toLocaleDateString(undefined,fmt)+" – "+shiftProfileDate(end,-1,"day").toLocaleDateString(undefined,fmt);
-  buckets=Array.from({length:7},(_,i)=>({key:i,label:shiftProfileDate(start,i,"day").toLocaleDateString(undefined,{weekday:"short"}),clicks:[],races:[]}));
+  buckets=Array.from({length:7},(_,i)=>({key:i,label:shiftProfileDate(start,i,"day").toLocaleDateString(undefined,{weekday:"short"}),clicks:[],seconds:[],races:[]}));
  }else{
   start=new Date(now.getFullYear(),now.getMonth()+profilePeriodOffset,1);end=new Date(start.getFullYear(),start.getMonth()+1,1);
   label=profilePeriodOffset===0?"This month":start.toLocaleDateString(undefined,{month:"long",year:"numeric"});
-  buckets=Array.from({length:end.getDate()},(_,i)=>({key:i,label:String(i+1),clicks:[],races:[]}));
+  buckets=Array.from({length:end.getDate()},(_,i)=>({key:i,label:String(i+1),clicks:[],seconds:[],races:[]}));
  }
  $("profileWeekLabel").textContent=label;
  $("profileWeekNext").disabled=profilePeriodOffset>=0;
@@ -1274,7 +1274,11 @@ function renderProfileLineChart(history){
   if(profilePeriod==="day")index=date.getHours();
   else if(profilePeriod==="week")index=Math.floor((new Date(date.getFullYear(),date.getMonth(),date.getDate())-start)/86400000);
   else index=date.getDate()-1;
-  if(index>=0&&index<buckets.length){buckets[index].clicks.push(Number(r.clicks));buckets[index].races.push(r);}
+  if(index>=0&&index<buckets.length){
+   buckets[index].clicks.push(Number(r.clicks));
+   if(Number.isFinite(Number(r.seconds)))buckets[index].seconds.push(Number(r.seconds));
+   buckets[index].races.push(r);
+  }
  });
  const values=buckets.map(d=>d.clicks.length?d.clicks.reduce((a,b)=>a+b,0)/d.clicks.length:0);
  const total=buckets.reduce((n,d)=>n+d.races.length,0);
@@ -1284,14 +1288,41 @@ function renderProfileLineChart(history){
  host.appendChild(summary);
  if(!total){const empty=document.createElement("p");empty.className="profile-empty";empty.textContent="No completed races in this "+profilePeriod+".";host.appendChild(empty);return;}
  const w=720,h=220,pad=34,ns="http://www.w3.org/2000/svg",max=Math.max(5,...values);
- const svg=document.createElementNS(ns,"svg");svg.setAttribute("viewBox",`0 0 ${w} ${h}`);svg.setAttribute("role","img");svg.setAttribute("aria-label","Average clicks by "+profilePeriod+", "+profileChartType+" chart");
+ const svg=document.createElementNS(ns,"svg");svg.setAttribute("viewBox",`0 0 ${w} ${h}`);svg.setAttribute("role","img");svg.setAttribute("aria-label","Race performance by "+profilePeriod);
  [0,1,2,3].forEach(i=>{const line=document.createElementNS(ns,"line"),y=pad+i*(h-pad*2)/3;line.setAttribute("x1",pad);line.setAttribute("x2",w-pad);line.setAttribute("y1",y);line.setAttribute("y2",y);line.setAttribute("class","profile-chart-gridline");svg.appendChild(line);});
- const x=i=>pad+(i+.5)*(w-pad*2)/buckets.length,y=v=>h-pad-v/max*(h-pad*2);
- if(profileChartType==="bar"){
+ const x=i=>pad+(i+.5)*(w-pad*2)/buckets.length;
+ if(profilePeriod==="day"&&profileChartType==="line"){
+  const addSeries=(key,className,labelText)=>{
+   const raw=buckets.map(d=>d[key].length?d[key].reduce((a,b)=>a+b,0)/d[key].length:null);
+   const present=raw.map((v,i)=>v===null?-1:i).filter(i=>i>=0);
+   if(!present.length)return;
+   const first=present[0],last=present[present.length-1],maxValue=Math.max(1,...present.map(i=>raw[i]));
+   const points=[];
+   for(let i=first;i<=last;i++){
+    let value=raw[i];
+    if(value===null){
+     let before=i-1,after=i+1;while(before>=first&&raw[before]===null)before--;while(after<=last&&raw[after]===null)after++;
+     if(before<first||after>last)continue;
+     value=raw[before]+(raw[after]-raw[before])*(i-before)/(after-before);
+    }
+    points.push({x:x(i),y:h-pad-(value/maxValue)*(h-pad*2),hour:i,value});
+   }
+   const path=document.createElementNS(ns,"path");path.setAttribute("d",points.map((p,i)=>(i?"L":"M")+p.x+" "+p.y).join(" "));path.setAttribute("class","profile-chart-line "+className);svg.appendChild(path);
+   present.forEach(i=>{
+    const p=points.find(point=>point.hour===i);if(!p)return;
+    const dot=document.createElementNS(ns,"circle");dot.setAttribute("cx",p.x);dot.setAttribute("cy",p.y);dot.setAttribute("r",4.5);dot.setAttribute("class","profile-chart-dot "+className);
+    const title=document.createElementNS(ns,"title");title.textContent=buckets[i].label+": "+buckets[i].races.length+" race(s), "+raw[i].toFixed(1)+" average "+labelText.toLowerCase();dot.appendChild(title);svg.appendChild(dot);
+   });
+  };
+  addSeries("clicks","profile-chart-clicks","Clicks");
+  addSeries("seconds","profile-chart-time","Completion time (seconds)");
+  const legend=document.createElement("div");legend.className="profile-chart-legend profile-chart-legend-multiple";
+  legend.innerHTML='<span><i class="profile-chart-clicks"></i> Average clicks</span><span><i class="profile-chart-time"></i> Average time</span>';host.appendChild(legend);
+ }else if(profileChartType==="bar"){
   const barWidth=Math.max(3,Math.min(44,(w-pad*2)/buckets.length*.62));
-  buckets.forEach((d,i)=>{if(!d.races.length)return;const rect=document.createElementNS(ns,"rect");const barH=Math.max(2,h-pad-y(values[i]));rect.setAttribute("x",x(i)-barWidth/2);rect.setAttribute("y",y(values[i]));rect.setAttribute("width",barWidth);rect.setAttribute("height",barH);rect.setAttribute("class","profile-chart-bar");const title=document.createElementNS(ns,"title");title.textContent=d.label+": "+d.races.length+" race(s), "+values[i].toFixed(1)+" average clicks";rect.appendChild(title);svg.appendChild(rect);});
+  buckets.forEach((d,i)=>{if(!d.races.length)return;const rect=document.createElementNS(ns,"rect");const barH=Math.max(2,h-pad-(values[i]/max)*(h-pad*2));rect.setAttribute("x",x(i)-barWidth/2);rect.setAttribute("y",h-pad-barH);rect.setAttribute("width",barWidth);rect.setAttribute("height",barH);rect.setAttribute("class","profile-chart-bar");const title=document.createElementNS(ns,"title");title.textContent=d.label+": "+d.races.length+" race(s), "+values[i].toFixed(1)+" average clicks";rect.appendChild(title);svg.appendChild(rect);});
  }else{
-  const pts=values.map((v,i)=>({x:x(i),y:y(v),hasData:buckets[i].races.length>0})).filter(p=>p.hasData);
+  const pts=values.map((v,i)=>({x:x(i),y:h-pad-(v/max)*(h-pad*2),hasData:buckets[i].races.length>0})).filter(p=>p.hasData);
   if(pts.length){const path=document.createElementNS(ns,"path");path.setAttribute("d",pts.map((p,i)=>(i?"L":"M")+p.x+" "+p.y).join(" "));path.setAttribute("class","profile-chart-line");svg.appendChild(path);}
   pts.forEach(p=>{const dot=document.createElementNS(ns,"circle");dot.setAttribute("cx",p.x);dot.setAttribute("cy",p.y);dot.setAttribute("r",5);dot.setAttribute("class","profile-chart-dot");svg.appendChild(dot);});
  }
