@@ -502,9 +502,15 @@ html[data-theme="dark"] .daily-challenge-card .daily-route{background:var(--surf
 #homeScreen:not(.show-multiplayer):not(.show-daily) .eyebrow{
   margin-bottom:6px;
 }
-/* Keep the Solo intro as one tight text group. */
+/* Keep the Solo eyebrow line close to its text, like Multiplayer. */
 #homeScreen:not(.show-multiplayer):not(.show-daily) .eyebrow{
+  width:max-content;
+  max-width:100%;
+  justify-content:flex-start;
   margin-bottom:4px;
+}
+#homeScreen:not(.show-multiplayer):not(.show-daily) .eyebrow-line{
+  flex:0 0 18px;
 }
 #homeScreen:not(.show-multiplayer):not(.show-daily) .hero h1{
   line-height:1.02;
