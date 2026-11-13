@@ -5,6 +5,8 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 const REST = "https://en.wikipedia.org/w/rest.php/v1/page/";
 const GUEST_STATS_KEY = "wikirace-guest-stats";
+let currentUser = null;
+let currentUsername = "";
 const $ = (id) => document.getElementById(id);
 
 const screens = {
@@ -246,7 +248,20 @@ async function chooseRoute() {
   return pickTwoDifferent(titles);
 }
 
+
+function levelFromXp(xp){return Math.floor(Math.sqrt(Math.max(0,Number(xp)||0)/100))+1;}
+function xpForNextLevel(level){return Math.pow(Math.max(1,Number(level)||1),2)*100;}
+function titleForLevel(level){if(level>=50)return "Encyclopedia Legend";if(level>=30)return "Wiki Master";if(level>=20)return "Knowledge Expert";if(level>=10)return "Page Navigator";if(level>=5)return "Article Explorer";return "Newcomer";}
+function awardXp(clicks,seconds,difficulty){const bonus={easy:0,medium:5,hard:10}[difficulty]||0;return Math.max(10,20+bonus+Math.max(0,10-Number(clicks||0))+(Number(seconds||0)<=30?10:0));}
+function renderProgression(profile={}){const xp=Number(profile.xp||0),level=levelFromXp(xp),floor=xpForNextLevel(level-1),ceil=xpForNextLevel(level),pct=Math.max(0,Math.min(100,(xp-floor)/(ceil-floor)*100));const el=$("profileLevel");if(el)el.textContent="Level "+level;const label=$("profileXp");if(label)label.textContent=xp+" XP · "+Math.max(0,ceil-xp)+" to next level";const bar=$("profileXpBar");if(bar)bar.style.width=pct+"%";const title=$("profileTitleLabel");if(title)title.textContent=profile.customTitle||titleForLevel(level);}
+function playRaceSound(kind){try{if(localStorage.getItem("wikirace-sounds")==="off")return;const C=window.AudioContext||window.webkitAudioContext;if(!C)return;const ctx=new C(),osc=ctx.createOscillator(),gain=ctx.createGain(),now=ctx.currentTime;const tone={click:[520,.04],win:[760,.14],level:[920,.2],start:[640,.08]}[kind]||[520,.04];osc.connect(gain);gain.connect(ctx.destination);osc.frequency.setValueAtTime(tone[0],now);osc.frequency.exponentialRampToValueAtTime(tone[0]*1.35,now+tone[1]);gain.gain.setValueAtTime(.05,now);gain.gain.exponentialRampToValueAtTime(.001,now+tone[1]);osc.start(now);osc.stop(now+tone[1]);osc.onended=()=>ctx.close();}catch(error){}}
+function renderProfileFavorites(profile={}){const host=$("profileFavorites");if(!host)return;host.replaceChildren();const items=Array.isArray(profile.favoriteArticles)?profile.favoriteArticles:[];if(!items.length){const p=document.createElement("p");p.className="profile-empty";p.textContent="No favorites yet. Use ☆ Favorite while viewing a Wikipedia article.";host.append(p);return;}items.forEach(title=>{const a=document.createElement("a");a.href="https://en.wikipedia.org/wiki/"+encodeURIComponent(title.replace(/ /g,"_"));a.target="_blank";a.rel="noopener noreferrer";a.textContent=title;host.append(a);});}
+async function toggleFavoriteArticle(){if(!currentUser)return authMode("signin");const title=state.current;if(!title)return;const ref=db.collection("users").doc(currentUser.uid);try{const snap=await ref.get(),p=snap.data()||{},items=Array.isArray(p.favoriteArticles)?p.favoriteArticles:[],exists=items.includes(title),next=exists?items.filter(x=>x!==title):[...items,title].slice(-30);await ref.set({favoriteArticles:next},{merge:true});const b=$("favoriteArticleButton");b.textContent=next.includes(title)?"★ Saved":"☆ Favorite";b.classList.toggle("is-favorite",next.includes(title));setToast(exists?"Removed from favorites.":"Added to favorites.");}catch(error){setToast(authError(error));}}
+async function loadLeaderboard(kind="global"){const host=$("leaderboardRows");if(!host)return;host.replaceChildren();const loading=document.createElement("li");loading.className="board-empty";loading.textContent="Loading rankings…";host.append(loading);try{let profiles=[];if(kind==="friends"){if(!currentUser)throw new Error("Sign in to view your friends leaderboard.");const links=await db.collection("friendships").where("members","array-contains",currentUser.uid).get();const ids=links.docs.map(d=>(d.data().members||[]).find(x=>x!==currentUser.uid)).filter(Boolean);ids.push(currentUser.uid);const docs=await Promise.all(ids.map(id=>db.collection("publicProfiles").doc(id).get()));profiles=docs.filter(d=>d.exists).map(d=>d.data());}else{const field=kind==="streaks"?"longestStreak":"xp";const snap=await db.collection("publicProfiles").orderBy(field,"desc").limit(50).get();profiles=snap.docs.map(d=>d.data());}profiles.sort((a,b)=>kind==="streaks"?Number(b.longestStreak||0)-Number(a.longestStreak||0):Number(b.xp||0)-Number(a.xp||0));host.replaceChildren();if(!profiles.length){const li=document.createElement("li");li.className="board-empty";li.textContent="No rankings yet.";host.append(li);return;}profiles.slice(0,25).forEach((p,i)=>{const li=document.createElement("li");li.className="leaderboard-row";const rank=document.createElement("strong");rank.textContent="#"+(i+1);const name=document.createElement("span");name.textContent=p.username||"WikiRace player";const score=document.createElement("b");score.textContent=kind==="streaks"?Number(p.longestStreak||0)+" days":Number(p.xp||0)+" XP · Lv "+levelFromXp(p.xp||0);li.append(rank,name,score);host.append(li);});}catch(error){host.replaceChildren();const li=document.createElement("li");li.className="board-empty";li.textContent=error.message||authError(error);host.append(li);}}
+function openLeaderboard(kind="global"){$("leaderboardModal").classList.remove("hidden");document.querySelectorAll("[data-board-tab]").forEach(b=>b.classList.toggle("active",b.dataset.boardTab===kind));loadLeaderboard(kind);}
+
 function updateStats() {
+  const favorite=$("favoriteArticleButton");if(favorite&&state.current){favorite.classList.remove("hidden");favorite.textContent="☆ Favorite";if(currentUser)db.collection("users").doc(currentUser.uid).get().then(s=>{const saved=(s.data()?.favoriteArticles||[]).includes(state.current);favorite.textContent=saved?"★ Saved":"☆ Favorite";favorite.classList.toggle("is-favorite",saved);}).catch(()=>{});}
   $("timer").textContent = formatTime(state.seconds);
   $("clickCount").textContent = String(state.clicks);
   const best = localStorage.getItem("wikirace-best-" + (state.mode === "daily" ? "daily" : state.difficulty));
@@ -737,6 +752,7 @@ function finishRace() {
   $("homeButton").textContent=state.mode==="multiplayer"?"Leave game":"Back to home";
   showScreen("win");
   launchConfetti();
+  playRaceSound("win");
   if(state.mode==="multiplayer"){
     updateRoomPlayer(true);
     renderMultiplayerResults();
@@ -745,6 +761,7 @@ function finishRace() {
     const userId=currentUser.uid;
     const raceSeconds=state.seconds;
     const raceClicks=state.clicks;
+    const earnedXp=awardXp(raceClicks,raceSeconds,state.difficulty);
     const profileRef=db.collection("users").doc(userId);
     db.runTransaction(async transaction=>{
       const snapshot=await transaction.get(profileRef);
@@ -752,6 +769,7 @@ function finishRace() {
       transaction.set(profileRef,{
         races:Number(profile.races||0)+1,
         wins:Number(profile.wins||0)+1,
+        xp:Number(profile.xp||0)+earnedXp,
         bestRaceTime:profile.bestRaceTime==null?raceSeconds:Math.min(Number(profile.bestRaceTime),raceSeconds),
         fewestRaceClicks:profile.fewestRaceClicks==null?raceClicks:Math.min(Number(profile.fewestRaceClicks),raceClicks),
         raceHistory:[...(Array.isArray(profile.raceHistory)?profile.raceHistory:[]),{date:new Date().toISOString(),start:state.start,goal:state.goal,clicks:raceClicks,seconds:raceSeconds,difficulty:state.difficulty||"standard",mode:state.mode||"solo"}].slice(-50),
@@ -759,9 +777,9 @@ function finishRace() {
       },{merge:true});
     }).then(()=>profileRef.get()).then(async snapshot=>{
       const profile=snapshot.data()||{};
-      renderProfileProgress(profile);
+      renderProfileProgress(profile);renderProgression(profile);
       await db.collection("publicProfiles").doc(userId).set({
-        uid:userId,username:currentUsername,races:Number(profile.races||0),wins:Number(profile.wins||0),
+        uid:userId,username:currentUsername,races:Number(profile.races||0),wins:Number(profile.wins||0),xp:Number(profile.xp||0),longestStreak:Number(profile.longestStreak||0),customTitle:profile.customTitle||"",
         bestRaceTime:profile.bestRaceTime??null,fewestRaceClicks:profile.fewestRaceClicks??null,
         raceHistory:Array.isArray(profile.raceHistory)?profile.raceHistory.slice(-50):[],
         currentStreak:Number(profile.currentStreak||0),longestStreak:Number(profile.longestStreak||0),
@@ -1092,9 +1110,12 @@ window.addEventListener("message", async event => {
 });
 
 updateStats();
+$("favoriteArticleButton")?.addEventListener("click",toggleFavoriteArticle);
+$("leaderboardButton")?.addEventListener("click",()=>openLeaderboard("global"));
+$("leaderboardClose")?.addEventListener("click",()=>$("leaderboardModal").classList.add("hidden"));
+$("leaderboardModal")?.addEventListener("click",e=>{if(e.target===$("leaderboardModal"))$("leaderboardModal").classList.add("hidden")});
+document.querySelectorAll("[data-board-tab]").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll("[data-board-tab]").forEach(x=>x.classList.toggle("active",x===b));loadLeaderboard(b.dataset.boardTab)}));
 
-let currentUser = null;
-let currentUsername = "";
 let activeRoom = null;
 let activeRoomCode = "";
 let chatUnsubscribe = null;
@@ -1158,10 +1179,10 @@ async function profileFor(user) {
     await ref.set(profile);
   }
   currentUsername = profile.username || (user.displayName || (user.email || "Player").split("@")[0]).slice(0,20);
-  renderProfileProgress(profile);
+  renderProfileProgress(profile);renderProgression(profile);
   await db.collection("publicProfiles").doc(user.uid).set({
     uid:user.uid,username:currentUsername,
-    races:Number(profile.races||0),wins:Number(profile.wins||0),
+    races:Number(profile.races||0),wins:Number(profile.wins||0),xp:Number(profile.xp||0),longestStreak:Number(profile.longestStreak||0),customTitle:profile.customTitle||"",
     bestRaceTime:profile.bestRaceTime??null,fewestRaceClicks:profile.fewestRaceClicks??null,
     currentStreak:Number(profile.currentStreak||0),longestStreak:Number(profile.longestStreak||0),
     totalDailyRuns:Number(profile.totalDailyRuns||0),raceHistory:Array.isArray(profile.raceHistory)?profile.raceHistory.slice(-50):[],dailyHistory:Array.isArray(profile.dailyHistory)?profile.dailyHistory.slice(0,60):[],streakBadges:profile.streakBadges||[],
@@ -1489,7 +1510,7 @@ async function openProfile(uid,name,isOwn=false){
    const badge=document.createElement("span");badge.className="profile-badge";badge.textContent=formatDailyBadge(m);$("viewProfileBadges").appendChild(badge);
   });
   const races=Array.isArray(p.raceHistory)?p.raceHistory:[];
-  profilePeriodOffset=0;window.profileDisplayedRaceHistory=races;renderProfileLineChart(races);renderProfileRaces(races);renderProfileDaily(Array.isArray(p.dailyHistory)?p.dailyHistory:[]);renderProfileAchievements(p,races,Array.isArray(p.dailyHistory)?p.dailyHistory:[]);
+  profilePeriodOffset=0;window.profileDisplayedRaceHistory=races;renderProgression(p);renderProfileFavorites(p);renderProfileLineChart(races);renderProfileRaces(races);renderProfileDaily(Array.isArray(p.dailyHistory)?p.dailyHistory:[]);renderProfileAchievements(p,races,Array.isArray(p.dailyHistory)?p.dailyHistory:[]);
   $("profileInviteButton").classList.toggle("hidden",isOwn||!currentUser);
   $("profileInviteButton").onclick=()=>inviteFriend(uid,p.username||name||"player");
  }catch(error){
