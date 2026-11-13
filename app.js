@@ -1475,7 +1475,7 @@ async function openProfile(uid,name,isOwn=false){
  $("profileAvatar").textContent=(name||"W").trim().charAt(0).toUpperCase();
  $("profileJoined").textContent="Loading profile…";
  $("profileInviteButton").classList.add("hidden");
- $("profileBlockButton")?.classList.add("hidden");$("profileReportButton")?.classList.add("hidden");
+ $("profileBlockButton")?.classList.add("hidden");$("profileReportButton")?.classList.add("hidden");if($("profileBlockButton")){$("profileBlockButton").disabled=false;$("profileBlockButton").textContent="Block player";}
  try{
   let p=null;
   let profileError=null;
