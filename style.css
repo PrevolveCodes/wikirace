@@ -476,3 +476,7 @@ html[data-theme="dark"] .daily-challenge-card .daily-route{background:var(--surf
 .guest-signup-prompt strong{display:block;font-size:14px}
 .guest-signup-prompt p{margin:7px 0 12px;color:var(--muted);font-size:13px;line-height:1.5}
 .guest-signup-prompt .secondary-button{width:100%}
+
+
+/* Square, blocky UI: remove rounded corners across the WikiRace interface. */
+*,*::before,*::after{border-radius:0!important}
