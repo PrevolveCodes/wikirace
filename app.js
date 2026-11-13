@@ -4,6 +4,7 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 const REST = "https://en.wikipedia.org/w/rest.php/v1/page/";
+const GUEST_STATS_KEY = "wikirace-guest-stats";
 const $ = (id) => document.getElementById(id);
 
 const screens = {
@@ -711,6 +712,9 @@ function finishRace() {
   $("winGoal").textContent = state.goal;
   $("finalTime").textContent = formatTime(state.seconds);
   $("finalClicks").textContent = String(state.clicks);
+  const guestPrompt=$("guestSignupPrompt");
+  guestPrompt?.classList.toggle("hidden",!!currentUser || state.mode==="daily" || state.mode==="multiplayer");
+  if(!currentUser && state.mode!=="daily" && state.mode!=="multiplayer")saveGuestRaceStats();
   $("multiplayerResults")?.classList.toggle("hidden",state.mode!=="multiplayer");
   $("playAgainButton").classList.toggle("hidden",state.mode==="multiplayer");
   $("homeButton").textContent=state.mode==="multiplayer"?"Leave game":"Back to home";
@@ -738,6 +742,37 @@ function finishRace() {
     }).then(()=>profileRef.get()).then(snapshot=>renderProfileProgress(snapshot.data()||{})).catch(error=>console.warn("Could not update race records:",error));
   }
   if(state.mode==="daily")saveDailyResult();
+}
+function saveGuestRaceStats(){
+  try{
+    const previous=JSON.parse(localStorage.getItem(GUEST_STATS_KEY)||"{}");
+    const stats={
+      races:Number(previous.races||0)+1,
+      wins:Number(previous.wins||0)+1,
+      bestRaceTime:previous.bestRaceTime==null?state.seconds:Math.min(Number(previous.bestRaceTime),state.seconds),
+      fewestRaceClicks:previous.fewestRaceClicks==null?state.clicks:Math.min(Number(previous.fewestRaceClicks),state.clicks)
+    };
+    localStorage.setItem(GUEST_STATS_KEY,JSON.stringify(stats));
+  }catch(error){console.warn("Could not save guest race stats:",error);}
+}
+async function claimGuestRaceStats(user){
+  let guest;
+  try{guest=JSON.parse(localStorage.getItem(GUEST_STATS_KEY)||"null");}catch(error){return;}
+  if(!guest||!Number(guest.races))return;
+  const profileRef=db.collection("users").doc(user.uid);
+  await db.runTransaction(async transaction=>{
+    const snapshot=await transaction.get(profileRef);
+    const profile=snapshot.data()||{};
+    transaction.set(profileRef,{
+      races:Number(profile.races||0)+Number(guest.races||0),
+      wins:Number(profile.wins||0)+Number(guest.wins||0),
+      bestRaceTime:profile.bestRaceTime==null?guest.bestRaceTime:Math.min(Number(profile.bestRaceTime),Number(guest.bestRaceTime)),
+      fewestRaceClicks:profile.fewestRaceClicks==null?guest.fewestRaceClicks:Math.min(Number(profile.fewestRaceClicks),Number(guest.fewestRaceClicks))
+    },{merge:true});
+  });
+  localStorage.removeItem(GUEST_STATS_KEY);
+  const updated=await profileRef.get();
+  renderProfileProgress(updated.data()||{});
 }
 function closeOpponentFinishedPrompt(){
   $("opponentFinishedModal").classList.add("hidden");
@@ -1107,7 +1142,7 @@ auth.onAuthStateChanged(async user => {
   currentUser = user;
   currentUsername = "";
   renderAccount();
-  if (user) { try { await profileFor(user); listenForGameInvites(); startPresenceTracking(); } catch(e) { setToast(authError(e)); } }
+  if (user) { try { await profileFor(user); await claimGuestRaceStats(user); listenForGameInvites(); startPresenceTracking(); } catch(e) { setToast(authError(e)); } }
   else { if(matchmakingActive)cancelRandomMatch(false); if(presenceHeartbeat)clearInterval(presenceHeartbeat); presenceHeartbeat=null; document.removeEventListener("visibilitychange",handlePresenceVisibility); stopFriendPresenceListeners(); if(inviteUnsubscribe)inviteUnsubscribe(); inviteUnsubscribe=null; $("gameInviteNotifications").replaceChildren(); detachRoomListeners(); activeRoom=null; activeRoomCode=""; $("roomStatus").classList.add("hidden"); }
   renderAccount();
   loadDailyChallenge();
@@ -1696,6 +1731,7 @@ async function handleStartAction(){
   if(activeRoomCode){if(activeRoom?.hostUid===currentUser?.uid)await startRoomRace();else setToast("Waiting for the host to start the race.");return;}
   await beginRace();
 }
+$("guestSignupButton").addEventListener("click",()=>authMode("signup"));
 $("dailyRunButton").addEventListener("click",startDailyRun);
 $("dailyHistoryButton").addEventListener("click",openDailyHistory);
 $("dailyHistoryClose").addEventListener("click",()=>$("dailyHistoryModal").classList.add("hidden"));
