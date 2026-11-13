@@ -179,7 +179,7 @@ html[data-theme="dark"] .toast{background:#27292b;border-color:var(--line);color
  .difficulty-option{gap:8px;padding:11px 9px}
  .difficulty-option.selected{padding:10px 8px}
 }
-.profile-achievements-grid{grid-template-columns:1fr}@media(max-width:760px){
+.profile-achievements-panel{padding:0}.profile-achievements-dropdown>summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:20px 22px;cursor:pointer;user-select:none}.profile-achievements-dropdown>summary::-webkit-details-marker{display:none}.profile-achievements-dropdown>summary>span:first-child{display:flex;flex-direction:column;gap:5px}.profile-achievements-dropdown>summary strong{font:400 24px Georgia,serif}.profile-achievements-chevron{font-size:23px;color:var(--muted);transition:transform .18s ease}.profile-achievements-dropdown[open] .profile-achievements-chevron{transform:rotate(180deg)}.profile-achievements-dropdown .profile-achievements-grid{padding:0 22px 22px}.profile-achievements-grid{grid-template-columns:1fr}@media(max-width:760px){
  .app-shell{width:calc(100% - 32px)}
  .topbar{height:66px;flex-basis:66px}
  .brand{font-size:20px}.brand-mark{width:32px;height:32px;flex-basis:32px}
