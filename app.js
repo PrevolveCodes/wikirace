@@ -929,17 +929,23 @@ function leaveRace() {
 
 function setHomeTab(tab) {
   const multiplayer = tab === "multiplayer";
+  const daily = tab === "daily";
   $("homeScreen").classList.toggle("show-multiplayer", multiplayer);
-  $("soloTab").classList.toggle("active", !multiplayer);
+  $("homeScreen").classList.toggle("show-daily", daily);
+  $("soloTab").classList.toggle("active", !multiplayer && !daily);
   $("multiplayerTab").classList.toggle("active", multiplayer);
-  $("soloTab").setAttribute("aria-selected", String(!multiplayer));
+  $("dailyTab").classList.toggle("active", daily);
+  $("soloTab").setAttribute("aria-selected", String(!multiplayer && !daily));
   $("multiplayerTab").setAttribute("aria-selected", String(multiplayer));
-  $("soloTabPanel").setAttribute("aria-hidden", String(multiplayer));
+  $("dailyTab").setAttribute("aria-selected", String(daily));
+  $("soloTabPanel").setAttribute("aria-hidden", String(multiplayer || daily));
   $("accountPanel").setAttribute("aria-hidden", String(!multiplayer));
+  $("dailyPanel").setAttribute("aria-hidden", String(!daily));
   window.scrollTo({ top: 0, behavior: "instant" });
 }
 $("soloTab").addEventListener("click", () => setHomeTab("solo"));
 $("multiplayerTab").addEventListener("click", () => setHomeTab("multiplayer"));
+$("dailyTab").addEventListener("click", () => setHomeTab("daily"));
 
 document.querySelectorAll(".difficulty-option").forEach(button => {
   button.addEventListener("click", () => {
