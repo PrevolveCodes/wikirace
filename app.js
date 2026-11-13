@@ -1236,19 +1236,54 @@ function setFriendsTab(tab){
   $("friendsRequestsView").classList.toggle("active",tab==="requests");
   $("friendsListView").classList.toggle("active",tab==="friends");
 }
+let profileChartType="line";
+let profileWeekOffset=0;
+function shiftLocalDate(date,days){const d=new Date(date);d.setDate(d.getDate()+days);return d;}
+function weekStart(date){const d=new Date(date.getFullYear(),date.getMonth(),date.getDate());d.setDate(d.getDate()-((d.getDay()+6)%7));d.setHours(0,0,0,0);return d;}
 function renderProfileLineChart(history){
- const host=$("profileRaceChart");host.replaceChildren();
- const races=history.filter(x=>Number.isFinite(Number(x.clicks)));
- const values=races.map(x=>Number(x.clicks));
- const w=720,h=220,pad=34,ns="http://www.w3.org/2000/svg";
- const min=values.length?Math.min(0,...values):0,max=values.length?Math.max(...values):10,range=Math.max(5,max-min);
- const pts=values.map((v,i)=>({x:pad+(values.length===1?.5:i/(values.length-1))*(w-pad*2),y:h-pad-(v-min)/range*(h-pad*2)}));
- const svg=document.createElementNS(ns,"svg");svg.setAttribute("viewBox",`0 0 ${w} ${h}`);svg.setAttribute("role","img");svg.setAttribute("aria-label","Clicks per race, oldest to newest");
+ const host=$("profileRaceChart");if(!host)return;host.replaceChildren();
+ const today=new Date();const currentStart=weekStart(today);
+ const start=shiftLocalDate(currentStart,profileWeekOffset*7),end=shiftLocalDate(start,7);
+ const endOfWeek=shiftLocalDate(end,-1);
+ const fmt={month:"short",day:"numeric"};
+ $("profileWeekLabel").textContent=profileWeekOffset===0?"This week":start.toLocaleDateString(undefined,fmt)+" – "+endOfWeek.toLocaleDateString(undefined,fmt);
+ $("profileWeekNext").disabled=profileWeekOffset>=0;
+ const daily=Array.from({length:7},(_,i)=>({date:shiftLocalDate(start,i),clicks:[],races:0}));
+ history.forEach(r=>{
+  const date=r.date?new Date(r.date):null;
+  if(!date||!Number.isFinite(date.getTime())||date<start||date>=end||!Number.isFinite(Number(r.clicks)))return;
+  const index=Math.floor((weekStart(date)-start)/86400000);
+  if(index>=0&&index<7){daily[index].clicks.push(Number(r.clicks));daily[index].races++;}
+ });
+ const values=daily.map(d=>d.clicks.length?d.clicks.reduce((a,b)=>a+b,0)/d.clicks.length:0);
+ const total=daily.reduce((n,d)=>n+d.races,0);
+ const avg=total?Math.round(daily.reduce((n,d)=>n+d.clicks.reduce((a,b)=>a+b,0),0)/total*10)/10:null;
+ const summary=document.createElement("div");summary.className="profile-week-summary";
+ summary.innerHTML='<span><strong>'+total+'</strong> races</span><span><strong>'+(avg===null?"—":avg)+'</strong> avg. clicks</span>';
+ host.appendChild(summary);
+ if(!total){const empty=document.createElement("p");empty.className="profile-empty";empty.textContent="No completed races this week.";host.appendChild(empty);return;}
+ const w=720,h=220,pad=34,ns="http://www.w3.org/2000/svg",max=Math.max(5,...values);
+ const svg=document.createElementNS(ns,"svg");svg.setAttribute("viewBox",`0 0 ${w} ${h}`);svg.setAttribute("role","img");svg.setAttribute("aria-label",profileChartType==="bar"?"Average clicks by day this week, bar chart":"Average clicks by day this week, line chart");
  [0,1,2,3].forEach(i=>{const line=document.createElementNS(ns,"line"),y=pad+i*(h-pad*2)/3;line.setAttribute("x1",pad);line.setAttribute("x2",w-pad);line.setAttribute("y1",y);line.setAttribute("y2",y);line.setAttribute("class","profile-chart-gridline");svg.appendChild(line);});
- if(pts.length>1){const path=document.createElementNS(ns,"path");path.setAttribute("d",pts.map((p,i)=>(i?"L":"M")+p.x+" "+p.y).join(" "));path.setAttribute("class","profile-chart-line");svg.appendChild(path);}
- pts.forEach((p,i)=>{const dot=document.createElementNS(ns,"circle");dot.setAttribute("cx",p.x);dot.setAttribute("cy",p.y);dot.setAttribute("r",5);dot.setAttribute("class","profile-chart-dot");const t=document.createElementNS(ns,"title");t.textContent="Race "+(i+1)+": "+values[i]+" clicks";dot.appendChild(t);svg.appendChild(dot);});host.appendChild(svg);
- const labels=document.createElement("div");labels.className="profile-chart-labels";labels.innerHTML=values.length?'<span>Oldest</span><span>Most recent</span>':'<span>No race data yet</span><span>Clicks per race</span>';host.appendChild(labels);
+ const x=i=>pad+(i+.5)*(w-pad*2)/7,y=v=>h-pad-v/max*(h-pad*2);
+ if(profileChartType==="bar"){
+  daily.forEach((d,i)=>{const rect=document.createElementNS(ns,"rect");const barH=d.races?Math.max(2,(h-pad-y(values[i]))):0;rect.setAttribute("x",x(i)-22);rect.setAttribute("y",y(values[i]));rect.setAttribute("width",44);rect.setAttribute("height",barH);rect.setAttribute("rx",0);rect.setAttribute("class","profile-chart-bar");const title=document.createElementNS(ns,"title");title.textContent=d.races?d.races+" race(s), "+values[i].toFixed(1)+" average clicks":"No races";rect.appendChild(title);svg.appendChild(rect);});
+ }else{
+  const pts=values.map((v,i)=>({x:x(i),y:y(v)}));
+  const path=document.createElementNS(ns,"path");path.setAttribute("d",pts.map((p,i)=>(i?"L":"M")+p.x+" "+p.y).join(" "));path.setAttribute("class","profile-chart-line");svg.appendChild(path);
+  pts.forEach((p,i)=>{if(!daily[i].races)return;const dot=document.createElementNS(ns,"circle");dot.setAttribute("cx",p.x);dot.setAttribute("cy",p.y);dot.setAttribute("r",5);dot.setAttribute("class","profile-chart-dot");const t=document.createElementNS(ns,"title");t.textContent=daily[i].races+" race(s), "+values[i].toFixed(1)+" average clicks";dot.appendChild(t);svg.appendChild(dot);});
+ }
+ host.appendChild(svg);
+ const labels=document.createElement("div");labels.className="profile-chart-labels profile-week-labels";daily.forEach(d=>{const span=document.createElement("span");span.textContent=d.date.toLocaleDateString(undefined,{weekday:"short"});labels.appendChild(span);});host.appendChild(labels);
 }
+document.querySelectorAll("[data-profile-chart]").forEach(button=>button.addEventListener("click",()=>{
+ profileChartType=button.dataset.profileChart;
+ document.querySelectorAll("[data-profile-chart]").forEach(b=>b.classList.toggle("active",b===button));
+ if(window.profileDisplayedRaceHistory)renderProfileLineChart(window.profileDisplayedRaceHistory);
+}));
+$("profileWeekPrev").addEventListener("click",()=>{profileWeekOffset--;if(window.profileDisplayedRaceHistory)renderProfileLineChart(window.profileDisplayedRaceHistory);});
+$("profileWeekNext").addEventListener("click",()=>{if(profileWeekOffset<0){profileWeekOffset++;if(window.profileDisplayedRaceHistory)renderProfileLineChart(window.profileDisplayedRaceHistory);}});
+
 function renderProfileRaces(history){
  const list=$("profileRecentRaces");list.replaceChildren();$("profileRaceCount").textContent=history.length+" races";
  if(!history.length){const p=document.createElement("p");p.className="profile-empty";p.textContent="No races recorded yet. Your completed races will appear here.";list.appendChild(p);return;}
@@ -1388,7 +1423,7 @@ async function openProfile(uid,name,isOwn=false){
    const badge=document.createElement("span");badge.className="profile-badge";badge.textContent=formatDailyBadge(m);$("viewProfileBadges").appendChild(badge);
   });
   const races=Array.isArray(p.raceHistory)?p.raceHistory:[];
-  renderProfileLineChart(races);renderProfileRaces(races);renderProfileDaily(Array.isArray(p.dailyHistory)?p.dailyHistory:[]);
+  profileWeekOffset=0;window.profileDisplayedRaceHistory=races;renderProfileLineChart(races);renderProfileRaces(races);renderProfileDaily(Array.isArray(p.dailyHistory)?p.dailyHistory:[]);
   $("profileInviteButton").classList.toggle("hidden",isOwn||!currentUser);
   $("profileInviteButton").onclick=()=>inviteFriend(uid,p.username||name||"player");
  }catch(error){
