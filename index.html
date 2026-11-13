@@ -71,12 +71,28 @@
         </div>
       <section class="daily-panel" id="dailyPanel" role="tabpanel" aria-labelledby="dailyTab" aria-hidden="true">
         <div class="daily-panel-heading"><div><span class="section-kicker">ONE CHALLENGE EVERY DAY</span><h2>Daily Run</h2><p id="dailyDate">Loading today's challenge…</p></div><button class="secondary-button" id="dailyHistoryButton">Past runs</button></div>
-        <div class="daily-route"><div><span>START</span><strong id="dailyStartArticle">Loading…</strong></div><span class="daily-route-arrow">→</span><div><span>DESTINATION</span><strong id="dailyGoal">Loading…</strong></div></div>
-        <div class="daily-stats"><div><strong id="dailyCompletionCount">0</strong><span>COMPLETIONS</span></div>
-        <div class="profile-progress frame-none" id="profileProgress"><div class="profile-progress-top"><div><span class="section-kicker">YOUR PROGRESS</span><strong>Daily streak</strong></div><span class="profile-frame-label" id="profileFrameLabel">None frame</span></div><div class="profile-stat-grid"><div><span>Current streak</span><strong id="currentStreak">0 days</strong></div><div><span>Longest streak</span><strong id="longestStreak">0 days</strong></div><div><span>Streak freezes</span><strong id="streakFreezes">0</strong></div></div><div class="profile-badges" id="profileBadges"><span class="profile-empty">Complete Daily Runs to earn badges.</span></div><p class="profile-freeze-note">Badges unlock at 3, 7, 14, 30, 60, 100, and 365 days. Frames unlock at 30, 60, 100, and 365 days. A freeze automatically covers one missed day; earn one every 30-day streak milestone, up to 3.</p><p class="profile-records" id="profileRecords">Best race: — · Fewest clicks: —</p></div>
-        <div><strong id="dailyAverageClicks">—</strong><span>AVERAGE CLICKS</span></div></div>
-        <div class="daily-actions"><button class="primary-button" id="dailyRunButton">Play today's run</button><span>Same route for everyone. Fewest clicks wins; time breaks ties.</span></div>
-        <div class="daily-leaderboards"><section><h3>Today's leaderboard</h3><ol id="dailyLeaderboard" class="leaderboard-list"><li class="board-empty">Loading scores…</li></ol></section><section><h3>Longest streaks</h3><ol id="streakLeaderboard" class="leaderboard-list"><li class="board-empty">Loading streaks…</li></ol></section></div>
+        <section class="daily-challenge-card">
+          <div class="daily-challenge-top"><div><span class="section-kicker">TODAY'S CHALLENGE</span><p>Everyone gets the same route. Reach the destination in as few clicks as possible.</p></div><span class="daily-reset-note">NEW ROUTE AT MIDNIGHT UTC</span></div>
+          <div class="daily-route"><div><span>START</span><strong id="dailyStartArticle">Loading…</strong></div><span class="daily-route-arrow">→</span><div><span>DESTINATION</span><strong id="dailyGoal">Loading…</strong></div></div>
+          <div class="daily-actions"><button class="primary-button" id="dailyRunButton">Play today's run</button><span>Fewest clicks wins. Time breaks ties.</span></div>
+        </section>
+        <div class="daily-overview">
+          <section class="profile-progress frame-none" id="profileProgress">
+            <div class="profile-progress-top"><div><span class="section-kicker">YOUR PROGRESS</span><strong>Daily streak</strong></div><span class="profile-frame-label" id="profileFrameLabel">None frame</span></div>
+            <div class="profile-stat-grid"><div><span>Current streak</span><strong id="currentStreak">0 days</strong></div><div><span>Longest streak</span><strong id="longestStreak">0 days</strong></div><div><span>Streak freezes</span><strong id="streakFreezes">0</strong></div></div>
+            <div class="profile-badges" id="profileBadges"><span class="profile-empty">Complete Daily Runs to earn badges.</span></div>
+            <p class="profile-freeze-note">Badges unlock at 3, 7, 14, 30, 60, 100, and 365 days. Frames unlock at 30, 60, 100, and 365 days. A freeze automatically covers one missed day; earn one every 30-day streak milestone, up to 3.</p>
+            <p class="profile-records" id="profileRecords">Best race: — · Fewest clicks: —</p>
+          </section>
+          <section class="daily-stat-cards" aria-label="Daily Run statistics">
+            <div class="daily-stat-card"><span>COMPLETIONS</span><strong id="dailyCompletionCount">0</strong><p>Players who finished today's route</p></div>
+            <div class="daily-stat-card"><span>AVERAGE CLICKS</span><strong id="dailyAverageClicks">—</strong><p>Across today's completed runs</p></div>
+          </section>
+        </div>
+        <div class="daily-leaderboards">
+          <section class="daily-board-card"><div class="daily-board-heading"><h3>Today's leaderboard</h3><span>Fewest clicks, then fastest time</span></div><ol id="dailyLeaderboard" class="leaderboard-list"><li class="board-empty">Loading scores…</li></ol></section>
+          <section class="daily-board-card"><div class="daily-board-heading"><h3>Longest streaks</h3><span>Players with the most consecutive days</span></div><ol id="streakLeaderboard" class="leaderboard-list"><li class="board-empty">Loading streaks…</li></ol></section>
+        </div>
       </section>
       </section>
 
