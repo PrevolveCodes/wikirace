@@ -7,6 +7,7 @@ const REST = "https://en.wikipedia.org/w/rest.php/v1/page/";
 const GUEST_STATS_KEY = "wikirace-guest-stats";
 let currentUser = null;
 let currentUsername = "";
+let spectatorPlayersUnsubscribe = null;
 let viewedProfileUid = "";
 const $ = (id) => document.getElementById(id);
 
@@ -859,6 +860,10 @@ function showMultiplayerEndedResults(message){
   showScreen("win");
   renderMultiplayerResults();
 }
+
+async function spectateRoomByCode(){if(!currentUser)return authMode("signin");const code=$("spectateCodeInput").value.trim().toUpperCase();if(!/^[A-HJ-NP-Z2-9]{6}$/.test(code))return setToast("Enter a valid 6-character race code.");try{const found=await db.collection("rooms").where("code","==",code).limit(1).get();const roomDoc=found.docs.find(d=>d.data().status==="racing");if(!roomDoc)return setToast("No active race was found with that code.");if(spectatorPlayersUnsubscribe)spectatorPlayersUnsubscribe();const room=roomDoc.data();$("spectatorRoute").textContent=room.start+" → "+room.goal+" · "+String(room.difficulty||"").toUpperCase();$("spectatorModal").classList.remove("hidden");const host=$("spectatorPlayers");host.innerHTML='<p class="board-empty">Loading racers…</p>';spectatorPlayersUnsubscribe=roomDoc.ref.collection("players").onSnapshot(snapshot=>{host.replaceChildren();const players=snapshot.docs.map(d=>d.data()).sort((a,b)=>Number(a.clicks||0)-Number(b.clicks||0)||Number(a.seconds||0)-Number(b.seconds||0));if(!players.length){const p=document.createElement("p");p.className="board-empty";p.textContent="No racers are visible.";host.append(p);return;}players.forEach((player,index)=>{const row=document.createElement("div");row.className="spectator-player";const rank=document.createElement("strong");rank.textContent="#"+(index+1);const info=document.createElement("div");info.className="spectator-player-info";const name=document.createElement("b");name.textContent=player.username||"Player";const current=document.createElement("span");current.textContent=player.finished?"Reached the destination":player.ended?"Left the race":"At: "+(player.current||"Starting");info.append(name,current);const stats=document.createElement("small");stats.textContent=Number(player.clicks||0)+" clicks · "+formatTime(Number(player.seconds||0));row.append(rank,info,stats);host.append(row);});},error=>setToast(authError(error)));}catch(error){setToast(authError(error));}}
+function closeSpectator(){if(spectatorPlayersUnsubscribe)spectatorPlayersUnsubscribe();spectatorPlayersUnsubscribe=null;$("spectatorModal").classList.add("hidden");}
+
 function renderMultiplayerResults(){
   const panel=$("multiplayerResults"),list=$("multiplayerResultsList");
   if(!panel||!list||state.mode!=="multiplayer")return;
@@ -2199,6 +2204,8 @@ $("dailyHistoryModal").addEventListener("click",event=>{if(event.target===$("dai
 $("randomMatchButton").addEventListener("click",startRandomMatch);
 $("cancelMatchButton").addEventListener("click",()=>cancelRandomMatch(true));
 $("createRoomButton").addEventListener("click",createRoom);
+$("spectateRoomButton")?.addEventListener("click",spectateRoomByCode);$("spectatorClose")?.addEventListener("click",closeSpectator);$("spectatorModal")?.addEventListener("click",e=>{if(e.target===$("spectatorModal"))closeSpectator()});
+$("spectateCodeInput")?.addEventListener("input",()=>{$("spectateCodeInput").value=$("spectateCodeInput").value.toUpperCase().replace(/[^A-HJ-NP-Z2-9]/g,"").slice(0,6)});
 $("joinRoomButton").addEventListener("click",joinRoom);
 $("joinCodeInput").addEventListener("input",()=>{$("joinCodeInput").value=$("joinCodeInput").value.toUpperCase().replace(/[^A-HJ-NP-Z2-9]/g,"").slice(0,6);});
 
