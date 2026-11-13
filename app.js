@@ -739,7 +739,17 @@ function finishRace() {
         fewestRaceClicks:profile.fewestRaceClicks==null?raceClicks:Math.min(Number(profile.fewestRaceClicks),raceClicks),
         lastRaceAt:firebase.firestore.FieldValue.serverTimestamp()
       },{merge:true});
-    }).then(()=>profileRef.get()).then(snapshot=>renderProfileProgress(snapshot.data()||{})).catch(error=>console.warn("Could not update race records:",error));
+    }).then(()=>profileRef.get()).then(async snapshot=>{
+      const profile=snapshot.data()||{};
+      renderProfileProgress(profile);
+      await db.collection("publicProfiles").doc(userId).set({
+        uid:userId,username:currentUsername,races:Number(profile.races||0),wins:Number(profile.wins||0),
+        bestRaceTime:profile.bestRaceTime??null,fewestRaceClicks:profile.fewestRaceClicks??null,
+        currentStreak:Number(profile.currentStreak||0),longestStreak:Number(profile.longestStreak||0),
+        totalDailyRuns:Number(profile.totalDailyRuns||0),streakBadges:profile.streakBadges||[],
+        profileFrame:profile.profileFrame||"none",createdAt:profile.createdAt||null
+      },{merge:true});
+    }).catch(error=>console.warn("Could not update race records:",error));
   }
   if(state.mode==="daily")saveDailyResult();
 }
