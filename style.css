@@ -590,3 +590,8 @@ html[data-theme="dark"] .daily-challenge-card .daily-route{background:var(--surf
 .profile-banner-copy h1 .owner-badge{display:inline-flex;align-items:center;justify-content:center;align-self:center;margin:0;flex:none;vertical-align:baseline}
 .profile-badges{display:flex;align-items:center;align-content:flex-start;flex-wrap:wrap;gap:8px}
 .profile-badge{display:inline-flex;align-items:center;justify-content:center;min-height:24px;box-sizing:border-box;line-height:1.2;white-space:nowrap}
+
+.profile-chart-types{display:flex;gap:4px}.profile-chart-types button,.profile-week-controls button{border:1px solid var(--line);background:var(--surface);color:var(--text);padding:7px 11px;font:inherit;font-size:12px;cursor:pointer}.profile-chart-types button.active{background:var(--text);color:var(--bg);border-color:var(--text)}
+.profile-week-controls{display:flex;align-items:center;justify-content:center;gap:16px;margin:14px 0 2px}.profile-week-controls strong{font-size:12px;min-width:145px;text-align:center}.profile-week-controls button:disabled{opacity:.35;cursor:default}
+.profile-week-summary{display:flex;gap:22px;padding:6px 0 10px;color:var(--muted);font-size:11px}.profile-week-summary strong{color:var(--text);font-size:15px;margin-right:4px}.profile-chart-bar{fill:var(--blue)}.profile-week-labels{padding-left:20px;padding-right:20px;gap:0}.profile-week-labels span{flex:1;text-align:center}
+@media(max-width:560px){.profile-panel-heading{align-items:flex-start;gap:10px}.profile-week-controls{gap:8px}.profile-week-controls strong{min-width:120px}.profile-chart-types button{padding:6px 8px}}
