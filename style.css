@@ -470,3 +470,9 @@ html[data-theme="dark"] .daily-challenge-card .daily-route{background:var(--surf
 /* Random matchmaking */
 .random-match-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:12px 0 4px}
 .matchmaking-status{margin:10px 0 14px;padding:12px 14px;border:1px solid var(--line);background:var(--surface-soft);color:var(--text);font-size:12px}
+
+/* Guest account prompt on race results */
+.guest-signup-prompt{margin:20px 0 4px;padding:16px;border:1px solid var(--line);border-radius:12px;background:var(--surface-soft);text-align:left}
+.guest-signup-prompt strong{display:block;font-size:14px}
+.guest-signup-prompt p{margin:7px 0 12px;color:var(--muted);font-size:13px;line-height:1.5}
+.guest-signup-prompt .secondary-button{width:100%}
