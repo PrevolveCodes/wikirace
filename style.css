@@ -420,3 +420,48 @@ html[data-theme="dark"] .chat-launcher{background:#8ab4f8;color:#202122}
 #homeScreen.show-daily .hero{display:none}
 #homeScreen.show-daily .daily-panel{display:block;max-width:1160px;margin:42px auto 64px}
 #homeScreen.show-daily .daily-panel-heading{margin-bottom:10px}
+
+
+/* Daily Run dashboard layout */
+#homeScreen.show-daily .daily-panel{display:flex;flex-direction:column;gap:22px}
+#homeScreen.show-daily .daily-panel-heading{align-items:center;padding-bottom:17px;border-bottom:1px solid var(--line)}
+#homeScreen.show-daily .daily-panel-heading h2{font-size:32px}
+#homeScreen.show-daily .daily-panel-heading p{margin-top:5px}
+.daily-challenge-card{padding:22px;border:1px solid var(--line);background:var(--surface-soft)}
+.daily-challenge-top{display:flex;justify-content:space-between;align-items:flex-start;gap:18px}
+.daily-challenge-top p{margin:6px 0 0;color:var(--muted);font-size:12px;line-height:1.5}
+.daily-reset-note{flex:none;padding:6px 8px;border:1px solid var(--line);color:var(--muted);font-size:9px;letter-spacing:.8px}
+.daily-challenge-card .daily-route{margin:18px 0 16px;background:var(--surface);border-color:var(--line)}
+.daily-challenge-card .daily-actions{align-items:center}
+.daily-challenge-card .daily-actions .primary-button{min-height:43px}
+.daily-overview{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(230px,.85fr);gap:18px;align-items:stretch}
+.daily-overview .profile-progress{margin:0;padding:18px;background:var(--surface-soft)}
+.daily-overview .profile-stat-grid{gap:9px}
+.daily-stat-cards{display:grid;grid-template-rows:1fr 1fr;gap:12px}
+.daily-stat-card{display:flex;flex-direction:column;justify-content:center;gap:5px;padding:17px;border:1px solid var(--line);background:var(--surface)}
+.daily-stat-card>span{font-size:9px;letter-spacing:1px;color:var(--muted)}
+.daily-stat-card strong{font-size:25px;line-height:1.15;color:var(--text)}
+.daily-stat-card p{margin:0;color:var(--muted);font-size:10px}
+.daily-leaderboards{margin-top:0;padding-top:20px;gap:16px}
+.daily-board-card{min-width:0;padding:18px;border:1px solid var(--line);background:var(--surface)}
+.daily-board-heading{display:flex;flex-direction:column;gap:4px;margin-bottom:13px}
+.daily-board-heading h3{margin:0}
+.daily-board-heading>span{font-size:10px;color:var(--muted)}
+html[data-theme="dark"] .daily-challenge-card,html[data-theme="dark"] .daily-overview .profile-progress,html[data-theme="dark"] .daily-stat-card,html[data-theme="dark"] .daily-board-card{background:var(--surface-soft);border-color:var(--line)}
+html[data-theme="dark"] .daily-challenge-card .daily-route{background:var(--surface);border-color:var(--line)}
+@media(max-width:760px){
+ #homeScreen.show-daily .daily-panel{gap:16px}
+ .daily-challenge-card{padding:16px}
+ .daily-challenge-top{flex-direction:column;gap:8px}
+ .daily-overview{grid-template-columns:1fr}
+ .daily-stat-cards{grid-template-columns:1fr 1fr;grid-template-rows:none}
+ .daily-stat-card{min-height:112px;padding:13px}
+ .daily-overview .profile-progress{padding:15px}
+ .daily-board-card{padding:14px}
+}
+@media(max-width:420px){
+ .daily-stat-cards{grid-template-columns:1fr}
+ .daily-route{grid-template-columns:minmax(0,1fr) 24px minmax(0,1fr)}
+ .daily-route strong{font-size:14px}
+ .daily-challenge-card .daily-actions{align-items:flex-start;flex-direction:column}
+}
