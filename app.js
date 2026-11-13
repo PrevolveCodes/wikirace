@@ -1048,6 +1048,7 @@ let matchmakingInterval = null;
 let matchmakingRef = null;
 let matchmakingActive = false;
 let matchmakingJoining = false;
+let matchmakingAttemptInProgress = false;
 window.roomPlayers = [];
 
 function authError(error) {
@@ -1504,7 +1505,8 @@ async function enterMatchedRoom(data){
   }
 }
 async function tryFindRandomOpponent(){
-  if(!matchmakingActive||!currentUser||!matchmakingRef||matchmakingJoining)return;
+  if(!matchmakingActive||!currentUser||!matchmakingRef||matchmakingJoining||matchmakingAttemptInProgress)return;
+  matchmakingAttemptInProgress=true;
   try{
     const waiting=await db.collection("matchmakingQueue")
       .where("status","==","waiting")
@@ -1547,6 +1549,8 @@ async function tryFindRandomOpponent(){
     console.warn("Random matchmaking search failed:",error);
     setToast(authError(error));
     await cancelRandomMatch(false);
+  }finally{
+    matchmakingAttemptInProgress=false;
   }
 }
 async function startRandomMatch(){
