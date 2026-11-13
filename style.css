@@ -627,3 +627,25 @@ html[data-theme="dark"] .daily-challenge-card .daily-route{background:var(--surf
 .daily-bonus-status{font-size:10px;font-weight:700;letter-spacing:.08em;padding:5px 8px;border:1px solid var(--line);color:var(--muted)}
 .daily-bonus-status.is-done{color:var(--text);border-color:var(--text);background:var(--surface)}
 .daily-bonus-challenge.is-complete{border-color:var(--text)}
+
+
+/* Powerup shop and in-race controls */
+.powerup-wallet{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:18px 0 12px}
+.powerup-wallet>div{display:flex;flex-direction:column;gap:6px;padding:13px;border:1px solid var(--line);background:var(--surface)}
+.powerup-wallet span{font-size:9px;letter-spacing:.1em;color:var(--muted);font-weight:700}
+.powerup-wallet strong{font:400 25px Georgia,serif;font-variant-numeric:tabular-nums}
+.powerup-shop-note{font-size:12px;line-height:1.5;color:var(--muted);margin:0 0 12px}
+.powerup-shop-items{display:flex;flex-direction:column;gap:8px;margin-top:16px}
+.powerup-shop-item{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:13px;border:1px solid var(--line);background:var(--surface)}
+.powerup-shop-copy{display:flex;flex-direction:column;gap:5px;min-width:0}
+.powerup-shop-copy strong{font-size:13px}
+.powerup-shop-copy p{font-size:11px;color:var(--muted);margin:0;line-height:1.4}
+.powerup-shop-copy small{font-size:10px;color:var(--muted)}
+.powerup-shop-item button{flex:none}
+.race-powerups{display:flex;flex-wrap:wrap;gap:7px;padding:11px 14px;margin:12px 0;border:1px solid var(--line);background:var(--surface)}
+.race-powerup-button{padding:8px 10px;border:1px solid var(--line);background:var(--bg);color:var(--text);font:inherit;font-size:11px;cursor:pointer}
+.race-powerup-button:hover:not(:disabled){border-color:var(--blue);color:var(--blue)}
+.race-powerup-button:disabled{opacity:.4;cursor:not-allowed}
+.multiplayer-powerup-setting{margin:10px 0 16px}
+.time-freeze-notice{margin:12px 0 0;padding:9px 11px;border:1px solid var(--line);background:var(--surface);color:var(--muted);font-size:11px;line-height:1.45}
+@media(max-width:560px){.powerup-shop-item{align-items:flex-start;flex-direction:column}.powerup-shop-item button{width:100%}.race-powerups{gap:5px}.race-powerup-button{padding:7px 8px;font-size:10px}}
