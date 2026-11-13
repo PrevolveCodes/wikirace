@@ -498,11 +498,14 @@ html[data-theme="dark"] .daily-challenge-card .daily-route{background:var(--surf
 }
 
 
-/* Keep Solo text compact, matching the tighter spacing used elsewhere. */
+/* Compact the Solo intro so its text sits together. */
+#homeScreen:not(.show-multiplayer):not(.show-daily) .eyebrow{
+  margin-bottom:6px;
+}
 #homeScreen:not(.show-multiplayer):not(.show-daily) .hero h1{
-  line-height:1.08;
-  margin-bottom:12px;
+  line-height:1.06;
+  margin-bottom:8px;
 }
 #homeScreen:not(.show-multiplayer):not(.show-daily) .hero-copy{
-  line-height:1.55;
+  line-height:1.45;
 }
