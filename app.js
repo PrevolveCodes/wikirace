@@ -1237,52 +1237,87 @@ function setFriendsTab(tab){
   $("friendsListView").classList.toggle("active",tab==="friends");
 }
 let profileChartType="line";
-let profileWeekOffset=0;
-function shiftLocalDate(date,days){const d=new Date(date);d.setDate(d.getDate()+days);return d;}
-function weekStart(date){const d=new Date(date.getFullYear(),date.getMonth(),date.getDate());d.setDate(d.getDate()-((d.getDay()+6)%7));d.setHours(0,0,0,0);return d;}
+let profilePeriod="day";
+let profilePeriodOffset=0;
+function shiftProfileDate(date,amount,unit){
+ const d=new Date(date);
+ if(unit==="month")d.setMonth(d.getMonth()+amount);
+ else d.setDate(d.getDate()+amount);
+ return d;
+}
+function profileWeekStart(date){
+ const d=new Date(date.getFullYear(),date.getMonth(),date.getDate());
+ d.setDate(d.getDate()-((d.getDay()+6)%7));d.setHours(0,0,0,0);return d;
+}
 function renderProfileLineChart(history){
  const host=$("profileRaceChart");if(!host)return;host.replaceChildren();
- const today=new Date();const currentStart=weekStart(today);
- const start=shiftLocalDate(currentStart,profileWeekOffset*7),end=shiftLocalDate(start,7);
- const endOfWeek=shiftLocalDate(end,-1);
- const fmt={month:"short",day:"numeric"};
- $("profileWeekLabel").textContent=profileWeekOffset===0?"This week":start.toLocaleDateString(undefined,fmt)+" – "+endOfWeek.toLocaleDateString(undefined,fmt);
- $("profileWeekNext").disabled=profileWeekOffset>=0;
- const daily=Array.from({length:7},(_,i)=>({date:shiftLocalDate(start,i),clicks:[],races:0}));
+ const now=new Date();let start,end,buckets=[],label="";const fmt={month:"short",day:"numeric"};
+ if(profilePeriod==="day"){
+  start=new Date(now.getFullYear(),now.getMonth(),now.getDate());start=shiftProfileDate(start,profilePeriodOffset,"day");end=shiftProfileDate(start,1,"day");
+  label=profilePeriodOffset===0?"Today":start.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"});
+  buckets=Array.from({length:24},(_,i)=>({key:i,label:i===0?"12 AM":i<12?i+" AM":i===12?"12 PM":(i-12)+" PM",clicks:[],races:[]}));
+ }else if(profilePeriod==="week"){
+  start=shiftProfileDate(profileWeekStart(now),profilePeriodOffset*7,"day");end=shiftProfileDate(start,7,"day");
+  label=profilePeriodOffset===0?"This week":start.toLocaleDateString(undefined,fmt)+" – "+shiftProfileDate(end,-1,"day").toLocaleDateString(undefined,fmt);
+  buckets=Array.from({length:7},(_,i)=>({key:i,label:shiftProfileDate(start,i,"day").toLocaleDateString(undefined,{weekday:"short"}),clicks:[],races:[]}));
+ }else{
+  start=new Date(now.getFullYear(),now.getMonth()+profilePeriodOffset,1);end=new Date(start.getFullYear(),start.getMonth()+1,1);
+  label=profilePeriodOffset===0?"This month":start.toLocaleDateString(undefined,{month:"long",year:"numeric"});
+  buckets=Array.from({length:end.getDate()},(_,i)=>({key:i,label:String(i+1),clicks:[],races:[]}));
+ }
+ $("profileWeekLabel").textContent=label;
+ $("profileWeekNext").disabled=profilePeriodOffset>=0;
  history.forEach(r=>{
   const date=r.date?new Date(r.date):null;
   if(!date||!Number.isFinite(date.getTime())||date<start||date>=end||!Number.isFinite(Number(r.clicks)))return;
-  const index=Math.floor((weekStart(date)-start)/86400000);
-  if(index>=0&&index<7){daily[index].clicks.push(Number(r.clicks));daily[index].races++;}
+  let index;
+  if(profilePeriod==="day")index=date.getHours();
+  else if(profilePeriod==="week")index=Math.floor((new Date(date.getFullYear(),date.getMonth(),date.getDate())-start)/86400000);
+  else index=date.getDate()-1;
+  if(index>=0&&index<buckets.length){buckets[index].clicks.push(Number(r.clicks));buckets[index].races.push(r);}
  });
- const values=daily.map(d=>d.clicks.length?d.clicks.reduce((a,b)=>a+b,0)/d.clicks.length:0);
- const total=daily.reduce((n,d)=>n+d.races,0);
- const avg=total?Math.round(daily.reduce((n,d)=>n+d.clicks.reduce((a,b)=>a+b,0),0)/total*10)/10:null;
+ const values=buckets.map(d=>d.clicks.length?d.clicks.reduce((a,b)=>a+b,0)/d.clicks.length:0);
+ const total=buckets.reduce((n,d)=>n+d.races.length,0);
+ const avg=total?Math.round(buckets.reduce((n,d)=>n+d.clicks.reduce((a,b)=>a+b,0),0)/total*10)/10:null;
  const summary=document.createElement("div");summary.className="profile-week-summary";
  summary.innerHTML='<span><strong>'+total+'</strong> races</span><span><strong>'+(avg===null?"—":avg)+'</strong> avg. clicks</span>';
  host.appendChild(summary);
- if(!total){const empty=document.createElement("p");empty.className="profile-empty";empty.textContent="No completed races this week.";host.appendChild(empty);return;}
+ if(!total){const empty=document.createElement("p");empty.className="profile-empty";empty.textContent="No completed races in this "+profilePeriod+".";host.appendChild(empty);return;}
  const w=720,h=220,pad=34,ns="http://www.w3.org/2000/svg",max=Math.max(5,...values);
- const svg=document.createElementNS(ns,"svg");svg.setAttribute("viewBox",`0 0 ${w} ${h}`);svg.setAttribute("role","img");svg.setAttribute("aria-label",profileChartType==="bar"?"Average clicks by day this week, bar chart":"Average clicks by day this week, line chart");
+ const svg=document.createElementNS(ns,"svg");svg.setAttribute("viewBox",`0 0 ${w} ${h}`);svg.setAttribute("role","img");svg.setAttribute("aria-label","Average clicks by "+profilePeriod+", "+profileChartType+" chart");
  [0,1,2,3].forEach(i=>{const line=document.createElementNS(ns,"line"),y=pad+i*(h-pad*2)/3;line.setAttribute("x1",pad);line.setAttribute("x2",w-pad);line.setAttribute("y1",y);line.setAttribute("y2",y);line.setAttribute("class","profile-chart-gridline");svg.appendChild(line);});
- const x=i=>pad+(i+.5)*(w-pad*2)/7,y=v=>h-pad-v/max*(h-pad*2);
+ const x=i=>pad+(i+.5)*(w-pad*2)/buckets.length,y=v=>h-pad-v/max*(h-pad*2);
  if(profileChartType==="bar"){
-  daily.forEach((d,i)=>{const rect=document.createElementNS(ns,"rect");const barH=d.races?Math.max(2,(h-pad-y(values[i]))):0;rect.setAttribute("x",x(i)-22);rect.setAttribute("y",y(values[i]));rect.setAttribute("width",44);rect.setAttribute("height",barH);rect.setAttribute("rx",0);rect.setAttribute("class","profile-chart-bar");const title=document.createElementNS(ns,"title");title.textContent=d.races?d.races+" race(s), "+values[i].toFixed(1)+" average clicks":"No races";rect.appendChild(title);svg.appendChild(rect);});
+  const barWidth=Math.max(3,Math.min(44,(w-pad*2)/buckets.length*.62));
+  buckets.forEach((d,i)=>{if(!d.races.length)return;const rect=document.createElementNS(ns,"rect");const barH=Math.max(2,h-pad-y(values[i]));rect.setAttribute("x",x(i)-barWidth/2);rect.setAttribute("y",y(values[i]));rect.setAttribute("width",barWidth);rect.setAttribute("height",barH);rect.setAttribute("class","profile-chart-bar");const title=document.createElementNS(ns,"title");title.textContent=d.label+": "+d.races.length+" race(s), "+values[i].toFixed(1)+" average clicks";rect.appendChild(title);svg.appendChild(rect);});
  }else{
-  const pts=values.map((v,i)=>({x:x(i),y:y(v)}));
-  const path=document.createElementNS(ns,"path");path.setAttribute("d",pts.map((p,i)=>(i?"L":"M")+p.x+" "+p.y).join(" "));path.setAttribute("class","profile-chart-line");svg.appendChild(path);
-  pts.forEach((p,i)=>{if(!daily[i].races)return;const dot=document.createElementNS(ns,"circle");dot.setAttribute("cx",p.x);dot.setAttribute("cy",p.y);dot.setAttribute("r",5);dot.setAttribute("class","profile-chart-dot");const t=document.createElementNS(ns,"title");t.textContent=daily[i].races+" race(s), "+values[i].toFixed(1)+" average clicks";dot.appendChild(t);svg.appendChild(dot);});
+  const pts=values.map((v,i)=>({x:x(i),y:y(v),hasData:buckets[i].races.length>0})).filter(p=>p.hasData);
+  if(pts.length){const path=document.createElementNS(ns,"path");path.setAttribute("d",pts.map((p,i)=>(i?"L":"M")+p.x+" "+p.y).join(" "));path.setAttribute("class","profile-chart-line");svg.appendChild(path);}
+  pts.forEach(p=>{const dot=document.createElementNS(ns,"circle");dot.setAttribute("cx",p.x);dot.setAttribute("cy",p.y);dot.setAttribute("r",5);dot.setAttribute("class","profile-chart-dot");svg.appendChild(dot);});
  }
  host.appendChild(svg);
- const labels=document.createElement("div");labels.className="profile-chart-labels profile-week-labels";daily.forEach(d=>{const span=document.createElement("span");span.textContent=d.date.toLocaleDateString(undefined,{weekday:"short"});labels.appendChild(span);});host.appendChild(labels);
+ const labels=document.createElement("div");labels.className="profile-chart-labels profile-week-labels";
+ const stride=profilePeriod==="day"?3:profilePeriod==="week"?1:Math.ceil(buckets.length/7);
+ buckets.forEach((d,i)=>{if(i%stride!==0&&i!==buckets.length-1)return;const span=document.createElement("span");span.textContent=d.label;labels.appendChild(span);});
+ host.appendChild(labels);
 }
 document.querySelectorAll("[data-profile-chart]").forEach(button=>button.addEventListener("click",()=>{
  profileChartType=button.dataset.profileChart;
  document.querySelectorAll("[data-profile-chart]").forEach(b=>b.classList.toggle("active",b===button));
  if(window.profileDisplayedRaceHistory)renderProfileLineChart(window.profileDisplayedRaceHistory);
 }));
-$("profileWeekPrev").addEventListener("click",()=>{profileWeekOffset--;if(window.profileDisplayedRaceHistory)renderProfileLineChart(window.profileDisplayedRaceHistory);});
-$("profileWeekNext").addEventListener("click",()=>{if(profileWeekOffset<0){profileWeekOffset++;if(window.profileDisplayedRaceHistory)renderProfileLineChart(window.profileDisplayedRaceHistory);}});
+document.querySelectorAll("[data-profile-period]").forEach(button=>button.addEventListener("click",()=>{
+ profilePeriod=button.dataset.profilePeriod;profilePeriodOffset=0;
+ document.querySelectorAll("[data-profile-period]").forEach(b=>b.classList.toggle("active",b===button));
+ if(window.profileDisplayedRaceHistory)renderProfileLineChart(window.profileDisplayedRaceHistory);
+}));
+$("profileWeekPrev").addEventListener("click",()=>{
+ profilePeriodOffset--;
+ if(window.profileDisplayedRaceHistory)renderProfileLineChart(window.profileDisplayedRaceHistory);
+});
+$("profileWeekNext").addEventListener("click",()=>{
+ if(profilePeriodOffset<0){profilePeriodOffset++;if(window.profileDisplayedRaceHistory)renderProfileLineChart(window.profileDisplayedRaceHistory);}
+});
 
 function renderProfileRaces(history){
  const list=$("profileRecentRaces");list.replaceChildren();$("profileRaceCount").textContent=history.length+" races";
