@@ -737,6 +737,7 @@ function finishRace() {
         wins:Number(profile.wins||0)+1,
         bestRaceTime:profile.bestRaceTime==null?raceSeconds:Math.min(Number(profile.bestRaceTime),raceSeconds),
         fewestRaceClicks:profile.fewestRaceClicks==null?raceClicks:Math.min(Number(profile.fewestRaceClicks),raceClicks),
+        raceHistory:[...(Array.isArray(profile.raceHistory)?profile.raceHistory:[]),{date:new Date().toISOString(),start:state.start,goal:state.goal,clicks:raceClicks,seconds:raceSeconds,difficulty:state.difficulty||"standard",mode:state.mode||"solo"}].slice(-50),
         lastRaceAt:firebase.firestore.FieldValue.serverTimestamp()
       },{merge:true});
     }).then(()=>profileRef.get()).then(async snapshot=>{
@@ -745,9 +746,10 @@ function finishRace() {
       await db.collection("publicProfiles").doc(userId).set({
         uid:userId,username:currentUsername,races:Number(profile.races||0),wins:Number(profile.wins||0),
         bestRaceTime:profile.bestRaceTime??null,fewestRaceClicks:profile.fewestRaceClicks??null,
+        raceHistory:Array.isArray(profile.raceHistory)?profile.raceHistory.slice(-50):[],
         currentStreak:Number(profile.currentStreak||0),longestStreak:Number(profile.longestStreak||0),
-        totalDailyRuns:Number(profile.totalDailyRuns||0),streakBadges:profile.streakBadges||[],
-        profileFrame:profile.profileFrame||"none",createdAt:profile.createdAt||null
+        totalDailyRuns:Number(profile.totalDailyRuns||0),dailyHistory:Array.isArray(profile.dailyHistory)?profile.dailyHistory.slice(0,60):[],
+        streakBadges:profile.streakBadges||[],profileFrame:profile.profileFrame||"none",createdAt:profile.createdAt||null
       },{merge:true});
     }).catch(error=>console.warn("Could not update race records:",error));
   }
@@ -1219,30 +1221,36 @@ function setFriendsTab(tab){
   $("friendsRequestsView").classList.toggle("active",tab==="requests");
   $("friendsListView").classList.toggle("active",tab==="friends");
 }
+function renderProfileLineChart(history){
+ const host=$("profileRaceChart");host.replaceChildren();const values=history.map(x=>Number(x.clicks||0)).filter(Number.isFinite);
+ if(values.length<2){const p=document.createElement("p");p.className="profile-empty";p.textContent=values.length?"Complete another race to see your trend.":"Complete races to build your chart.";host.appendChild(p);return;}
+ const w=720,h=220,pad=28,min=Math.min(...values),max=Math.max(...values),range=Math.max(1,max-min),ns="http://www.w3.org/2000/svg";
+ const pts=values.map((v,i)=>({x:pad+i*(w-pad*2)/(values.length-1),y:h-pad-(v-min)/range*(h-pad*2)}));
+ const svg=document.createElementNS(ns,"svg");svg.setAttribute("viewBox",`0 0 ${w} ${h}`);svg.setAttribute("role","img");svg.setAttribute("aria-label","Clicks per race, oldest to newest");
+ [0,1,2,3].forEach(i=>{const line=document.createElementNS(ns,"line"),y=pad+i*(h-pad*2)/3;line.setAttribute("x1",pad);line.setAttribute("x2",w-pad);line.setAttribute("y1",y);line.setAttribute("y2",y);line.setAttribute("class","profile-chart-gridline");svg.appendChild(line);});
+ const path=document.createElementNS(ns,"path");path.setAttribute("d",pts.map((p,i)=>(i?"L":"M")+p.x+" "+p.y).join(" "));path.setAttribute("class","profile-chart-line");svg.appendChild(path);
+ pts.forEach((p,i)=>{const dot=document.createElementNS(ns,"circle");dot.setAttribute("cx",p.x);dot.setAttribute("cy",p.y);dot.setAttribute("r",4);dot.setAttribute("class","profile-chart-dot");const t=document.createElementNS(ns,"title");t.textContent="Race "+(i+1)+": "+values[i]+" clicks";dot.appendChild(t);svg.appendChild(dot);});host.appendChild(svg);
+ const labels=document.createElement("div");labels.className="profile-chart-labels";labels.innerHTML="<span>Oldest</span><span>Most recent</span>";host.appendChild(labels);
+}
+function renderProfileRaces(history){
+ const list=$("profileRecentRaces");list.replaceChildren();$("profileRaceCount").textContent=history.length+" races";
+ if(!history.length){const p=document.createElement("p");p.className="profile-empty";p.textContent="No races recorded yet. Your completed races will appear here.";list.appendChild(p);return;}
+ history.slice().reverse().slice(0,12).forEach(r=>{const row=document.createElement("article");row.className="profile-race-row";const route=document.createElement("div");route.className="profile-race-route";const name=document.createElement("strong");name.textContent=(r.start||"Start")+" → "+(r.goal||"Finish");const meta=document.createElement("span");meta.textContent=(r.mode==="multiplayer"?"Multiplayer":r.mode==="daily"?"Daily Run":"Solo")+" · "+(r.date?new Date(r.date).toLocaleDateString():"Date unavailable");route.append(name,meta);const score=document.createElement("div");score.className="profile-race-score";const clicks=document.createElement("strong");clicks.textContent=(r.clicks??"—")+" clicks";const time=document.createElement("span");time.textContent=r.seconds==null?"—":formatTime(r.seconds);score.append(clicks,time);row.append(route,score);list.appendChild(row);});
+}
+function renderProfileDaily(history){
+ const host=$("profileDailyHistory");host.replaceChildren();if(!history.length){const p=document.createElement("p");p.className="profile-empty";p.textContent="No Daily Runs recorded yet.";host.appendChild(p);return;}
+ history.slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8).forEach(r=>{const row=document.createElement("div");row.className="profile-daily-row";const date=document.createElement("strong");date.textContent=r.date;const score=document.createElement("span");score.textContent=r.clicks+" clicks · "+formatTime(r.seconds);row.append(date,score);host.appendChild(row);});
+}
 async function openProfile(uid,name,isOwn=false){
-  if(!uid)return;
-  $("profileModal").classList.remove("hidden");
-  $("profileTitle").textContent=name||"WikiRace player";
-  $("profileAvatar").textContent=(name||"W").trim().charAt(0).toUpperCase();
-  $("profileJoined").textContent=isOwn?"Your WikiRace profile":"WikiRace player";
-  ["viewProfileRaces","viewProfileWins","viewProfileBestTime","viewProfileFewest","viewProfileStreak","viewProfileLongest"].forEach(id=>$(id).textContent="…");
-  $("viewProfileBadges").replaceChildren();
-  $("profileInviteButton").classList.add("hidden");
-  try{
-    const snap=await db.collection(isOwn?"users":"publicProfiles").doc(uid).get();
-    if(!snap.exists)throw new Error("This profile is not available.");
-    const p=snap.data()||{};
-    $("profileTitle").textContent=p.username||name||"WikiRace player";
-    $("profileAvatar").textContent=(p.username||name||"W").trim().charAt(0).toUpperCase();
-    $("profileJoined").textContent=p.createdAt?.toDate?.()?("Member since "+p.createdAt.toDate().toLocaleDateString(undefined,{month:"long",year:"numeric"})):(isOwn?"Your WikiRace profile":"WikiRace player");
-    $("viewProfileRaces").textContent=String(p.races||0);$("viewProfileWins").textContent=String(p.wins||0);
-    $("viewProfileBestTime").textContent=p.bestRaceTime==null?"—":formatTime(p.bestRaceTime);
-    $("viewProfileFewest").textContent=p.fewestRaceClicks==null?"—":String(p.fewestRaceClicks);
-    $("viewProfileStreak").textContent=(p.currentStreak||0)+" days";$("viewProfileLongest").textContent=(p.longestStreak||0)+" days";
-    const badges=p.streakBadges||[];
-    if(!badges.length){const empty=document.createElement("span");empty.className="profile-empty";empty.textContent="No Daily Run badges yet.";$("viewProfileBadges").appendChild(empty);}
-    else badges.slice().sort((a,b)=>a-b).forEach(m=>{const badge=document.createElement("span");badge.className="profile-badge";badge.textContent=formatDailyBadge(m);$("viewProfileBadges").appendChild(badge);});
-  }catch(error){setToast(error.message||authError(error));}
+ if(!uid)return;$("profileModal").classList.remove("hidden");$("profileTitle").textContent=name||"WikiRace player";$("profileAvatar").textContent=(name||"W").trim().charAt(0).toUpperCase();$("profileJoined").textContent="Loading profile…";$("profileInviteButton").classList.add("hidden");
+ try{const snap=await db.collection(isOwn?"users":"publicProfiles").doc(uid).get();if(!snap.exists)throw new Error("This profile is not available.");const p=snap.data()||{};
+ $("profileTitle").textContent=p.username||name||"WikiRace player";$("profileAvatar").textContent=(p.username||name||"W").trim().charAt(0).toUpperCase();$("profileJoined").textContent=p.createdAt?.toDate?.()?("Member since "+p.createdAt.toDate().toLocaleDateString(undefined,{month:"long",year:"numeric"})):(isOwn?"Your WikiRace profile":"WikiRace player");
+ $("viewProfileRaces").textContent=String(p.races||0);$("viewProfileWins").textContent=String(p.wins||0);$("viewProfileBestTime").textContent=p.bestRaceTime==null?"—":formatTime(p.bestRaceTime);$("viewProfileFewest").textContent=p.fewestRaceClicks==null?"—":String(p.fewestRaceClicks);
+ $("viewProfileStreak").textContent=String(p.currentStreak||0);$("viewProfileLongest").textContent=String(p.longestStreak||0);const badges=p.streakBadges||[];$("viewProfileBadges").replaceChildren();
+ if(!badges.length){const e=document.createElement("span");e.className="profile-empty";e.textContent="No Daily Run badges yet.";$("viewProfileBadges").appendChild(e);}else badges.slice().sort((x,y)=>x-y).forEach(m=>{const e=document.createElement("span");e.className="profile-badge";e.textContent=formatDailyBadge(m);$("viewProfileBadges").appendChild(e);});
+ const races=Array.isArray(p.raceHistory)?p.raceHistory:[];renderProfileLineChart(races);renderProfileRaces(races);renderProfileDaily(Array.isArray(p.dailyHistory)?p.dailyHistory:[]);
+ $("profileInviteButton").classList.toggle("hidden",isOwn||!currentUser);$("profileInviteButton").onclick=()=>inviteFriend(uid,p.username||name||"player");
+ }catch(e){setToast(e.message||authError(e));}
 }
 function friendMessage(message,isError=false){$("friendsMessage").textContent=message;$("friendsMessage").classList.toggle("error",isError);}
 function openFriends(){
