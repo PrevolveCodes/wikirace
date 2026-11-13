@@ -399,10 +399,18 @@ html[data-theme="dark"] .chat-launcher{background:#8ab4f8;color:#202122}
 .home-tab:hover{color:var(--text);background:var(--surface-soft)}
 .home-tab.active{border-bottom-color:var(--blue);color:var(--text)}
 #homeScreen:not(.show-multiplayer) .account-panel{display:none}
-#homeScreen.show-multiplayer .hero{grid-template-columns:minmax(0,1fr);grid-template-areas:"eyebrow" "title" "copy" "setup" "account" "foot";max-width:900px}
-#homeScreen.show-multiplayer .hero h1{max-width:760px}
-#homeScreen.show-multiplayer .hero-copy{max-width:700px}
-#homeScreen.show-multiplayer .setup-card{display:block;width:100%;max-width:760px;margin:0 auto}#homeScreen.show-multiplayer .daily-panel{display:none}
-#homeScreen.show-multiplayer .account-panel{grid-area:account;display:block;width:100%;max-width:760px;margin:0 auto;padding:28px}
-#homeScreen.show-multiplayer .hero-foot{grid-area:foot}
-@media(max-width:760px){.home-tabs{width:calc(100% - 32px)}.home-tab{flex:1;padding:11px 8px}#homeScreen.show-multiplayer .account-panel{padding:20px 17px}}
+#homeScreen.show-multiplayer .hero{grid-template-columns:minmax(0,1.08fr) minmax(320px,.92fr);grid-template-areas:"eyebrow eyebrow" "title title" "copy copy" "setup account" "foot foot";column-gap:22px;row-gap:0;max-width:1160px;margin-top:42px}
+#homeScreen.show-multiplayer .hero h1{max-width:900px}
+#homeScreen.show-multiplayer .hero-copy{max-width:760px;margin-bottom:28px}
+#homeScreen.show-multiplayer .setup-card{display:block;width:100%;max-width:none;margin:0}#homeScreen.show-multiplayer .daily-panel{display:none}
+#homeScreen.show-multiplayer .account-panel{grid-area:account;display:block;width:100%;max-width:none;margin:0;padding:25px;align-self:start}
+#homeScreen.show-multiplayer .hero-foot{grid-area:foot;margin-top:26px}
+@media(max-width:900px){#homeScreen.show-multiplayer .hero{grid-template-columns:minmax(0,1fr);grid-template-areas:"eyebrow" "title" "copy" "setup" "account" "foot";max-width:760px;row-gap:0}#homeScreen.show-multiplayer .account-panel{margin-top:18px}}@media(max-width:760px){.home-tabs{width:calc(100% - 32px)}.home-tab{flex:1;padding:11px 8px}#homeScreen.show-multiplayer .account-panel{padding:20px 17px}}
+
+/* Multiplayer tab layout */
+.multiplayer-step-title{margin:22px 0 8px;padding-top:18px;border-top:1px solid var(--line-soft);color:var(--text);font-size:13px;font-weight:700}
+#signedOutArea .multiplayer-step-title{margin-top:20px}
+#signedInArea .multiplayer-step-title{margin-top:22px}
+#homeScreen.show-multiplayer .account-panel-head{align-items:flex-start}
+#homeScreen.show-multiplayer .account-status{white-space:nowrap;padding:6px 9px;border:1px solid var(--line);border-radius:3px;background:var(--surface-soft)}
+@media(max-width:520px){#homeScreen.show-multiplayer .hero{margin-top:30px}#homeScreen.show-multiplayer .setup-heading{align-items:flex-start;flex-direction:column}#homeScreen.show-multiplayer .difficulty-options{grid-template-columns:1fr}#homeScreen.show-multiplayer .difficulty-option{min-height:58px}#homeScreen.show-multiplayer .custom-route-fields{grid-template-columns:1fr}#homeScreen.show-multiplayer .custom-route-fields label{grid-column:1/-1}#homeScreen.show-multiplayer .account-panel-head{flex-direction:column}}
