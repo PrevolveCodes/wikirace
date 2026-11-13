@@ -649,3 +649,9 @@ html[data-theme="dark"] .daily-challenge-card .daily-route{background:var(--surf
 .multiplayer-powerup-setting{margin:10px 0 16px}
 .time-freeze-notice{margin:12px 0 0;padding:9px 11px;border:1px solid var(--line);background:var(--surface);color:var(--muted);font-size:11px;line-height:1.45}
 @media(max-width:560px){.powerup-shop-item{align-items:flex-start;flex-direction:column}.powerup-shop-item button{width:100%}.race-powerups{gap:5px}.race-powerup-button{padding:7px 8px;font-size:10px}}
+
+
+/* XP reset announcement */
+.xp-reset-modal{width:min(100%,520px)}
+.xp-reset-modal p{margin:0 0 14px;color:var(--muted);font-size:14px;line-height:1.6}
+.xp-reset-modal .primary-button{margin-top:8px}
