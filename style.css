@@ -484,15 +484,15 @@ html[data-theme="dark"] .daily-challenge-card .daily-route{background:var(--surf
 
 /* Swipe transition between the Solo, Multiplayer, and Daily Run tabs. */
 @keyframes home-tab-swipe-in-right{
-  from{opacity:0;transform:translateX(52px)}
+  from{opacity:0;transform:translateX(90px)}
   to{opacity:1;transform:translateX(0)}
 }
 @keyframes home-tab-swipe-in-left{
-  from{opacity:0;transform:translateX(-52px)}
+  from{opacity:0;transform:translateX(-90px)}
   to{opacity:1;transform:translateX(0)}
 }
-.tab-swipe-from-right{animation:home-tab-swipe-in-right .28s cubic-bezier(.2,.7,.25,1) both}
-.tab-swipe-from-left{animation:home-tab-swipe-in-left .28s cubic-bezier(.2,.7,.25,1) both}
+.tab-swipe-from-right{animation:home-tab-swipe-in-right .42s cubic-bezier(.16,1,.3,1) both;will-change:transform,opacity}
+.tab-swipe-from-left{animation:home-tab-swipe-in-left .42s cubic-bezier(.16,1,.3,1) both;will-change:transform,opacity}
 @media(prefers-reduced-motion:reduce){
   .tab-swipe-from-right,.tab-swipe-from-left{animation:none}
 }
