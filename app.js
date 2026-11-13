@@ -1237,6 +1237,7 @@ async function openProfile(uid,name,isOwn=false){
 function friendMessage(message,isError=false){$("friendsMessage").textContent=message;$("friendsMessage").classList.toggle("error",isError);}
 function openFriends(){
   if(!currentUser)return authMode("signin");
+  setFriendsTab("find");
   $("friendsModal").classList.remove("hidden");
   $("friendUsernameInput").value="";
   friendMessage("");
