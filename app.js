@@ -1116,7 +1116,7 @@ window.addEventListener("message", async event => {
   }
   recordArticleVisit(title);
   await loadArticle(title, true);
-  updateRoomPlayer(false);
+  updateRoomPlayer(false,{scrollY:0,scrollPercent:0});
 });
 
 updateStats();
