@@ -253,6 +253,9 @@ function levelFromXp(xp){return Math.floor(Math.sqrt(Math.max(0,Number(xp)||0)/1
 function xpForNextLevel(level){return Math.pow(Math.max(1,Number(level)||1),2)*100;}
 function titleForLevel(level){if(level>=50)return "Encyclopedia Legend";if(level>=30)return "Wiki Master";if(level>=20)return "Knowledge Expert";if(level>=10)return "Page Navigator";if(level>=5)return "Article Explorer";return "Newcomer";}
 function awardXp(clicks,seconds,difficulty){const bonus={easy:0,medium:5,hard:10}[difficulty]||0;return Math.max(10,20+bonus+Math.max(0,10-Number(clicks||0))+(Number(seconds||0)<=30?10:0));}
+function getDailyBonus(){const day=Math.floor(Date.now()/86400000),challenges=[{title:"Quick Finish",description:"Finish any race in under 60 seconds for +30 XP.",test:(c,s)=>s<60},{title:"Efficient Explorer",description:"Reach the destination in 8 clicks or fewer for +30 XP.",test:(c)=>c<=8},{title:"Hard Mode Hero",description:"Complete a Hard race for +30 XP.",test:(c,s,d)=>d==="hard"},{title:"Speed Reader",description:"Finish in 30 seconds or less for +30 XP.",test:(c,s)=>s<=30}];return challenges[day%challenges.length];}
+function renderDailyBonus(){const challenge=getDailyBonus();const title=$("dailyBonusTitle"),description=$("dailyBonusDescription");if(title)title.textContent=challenge.title;if(description)description.textContent=challenge.description;}
+
 function renderProgression(profile={}){const xp=Number(profile.xp||0),level=levelFromXp(xp),floor=xpForNextLevel(level-1),ceil=xpForNextLevel(level),pct=Math.max(0,Math.min(100,(xp-floor)/(ceil-floor)*100));const el=$("profileLevel");if(el)el.textContent="Level "+level;const label=$("profileXp");if(label)label.textContent=xp+" XP · "+Math.max(0,ceil-xp)+" to next level";const bar=$("profileXpBar");if(bar)bar.style.width=pct+"%";const title=$("profileTitleLabel");if(title)title.textContent=profile.customTitle||titleForLevel(level);}
 function playRaceSound(kind){try{if(localStorage.getItem("wikirace-sounds")==="off")return;const C=window.AudioContext||window.webkitAudioContext;if(!C)return;const ctx=new C(),osc=ctx.createOscillator(),gain=ctx.createGain(),now=ctx.currentTime;const tone={click:[520,.04],win:[760,.14],level:[920,.2],start:[640,.08]}[kind]||[520,.04];osc.connect(gain);gain.connect(ctx.destination);osc.frequency.setValueAtTime(tone[0],now);osc.frequency.exponentialRampToValueAtTime(tone[0]*1.35,now+tone[1]);gain.gain.setValueAtTime(.05,now);gain.gain.exponentialRampToValueAtTime(.001,now+tone[1]);osc.start(now);osc.stop(now+tone[1]);osc.onended=()=>ctx.close();}catch(error){}}
 function renderProfileFavorites(profile={}){const host=$("profileFavorites");if(!host)return;host.replaceChildren();const items=Array.isArray(profile.favoriteArticles)?profile.favoriteArticles:[];if(!items.length){const p=document.createElement("p");p.className="profile-empty";p.textContent="No favorites yet. Use ☆ Favorite while viewing a Wikipedia article.";host.append(p);return;}items.forEach(title=>{const a=document.createElement("a");a.href="https://en.wikipedia.org/wiki/"+encodeURIComponent(title.replace(/ /g,"_"));a.target="_blank";a.rel="noopener noreferrer";a.textContent=title;host.append(a);});}
@@ -761,7 +764,7 @@ function finishRace() {
     const userId=currentUser.uid;
     const raceSeconds=state.seconds;
     const raceClicks=state.clicks;
-    const earnedXp=awardXp(raceClicks,raceSeconds,state.difficulty);
+    const earnedXp=awardXp(raceClicks,raceSeconds,state.difficulty)+((state.mode==="solo"&&getDailyBonus().test(raceClicks,raceSeconds,state.difficulty))?30:0);
     const profileRef=db.collection("users").doc(userId);
     db.runTransaction(async transaction=>{
       const snapshot=await transaction.get(profileRef);
@@ -1487,6 +1490,8 @@ async function openProfile(uid,name,isOwn=false){
    const publicSnap=await db.collection("publicProfiles").doc(uid).get();
    if(!publicSnap.exists)throw new Error("This player’s public profile has not been created yet. Ask them to sign in and refresh WikiRace.");
    p=publicSnap.data()||{};
+   db.collection("publicProfiles").doc(uid).set({profileViews:firebase.firestore.FieldValue.increment(1)},{merge:true}).catch(()=>{});
+   p.profileViews=Number(p.profileViews||0)+1;
   }
   setProfileTitle(p.username||name||"WikiRace player");
   const ownerBadge=$("profileOwnerBadge");
@@ -1495,7 +1500,7 @@ async function openProfile(uid,name,isOwn=false){
   $("profileBio").textContent=p.profileBio||"No bio added yet.";
   $("profileEditButton").classList.toggle("hidden",!isOwn);
   $("profileSettingsPanel").classList.add("hidden");
-  $("profileJoined").textContent=p.createdAt?.toDate?.()?("Member since "+p.createdAt.toDate().toLocaleDateString(undefined,{month:"long",year:"numeric"})):(isOwn?"Your WikiRace profile":"WikiRace player");
+  $("profileJoined").textContent=(isOwn?(p.createdAt?.toDate?.()?("Member since "+p.createdAt.toDate().toLocaleDateString(undefined,{month:"long",year:"numeric"})):"Your WikiRace profile"):(Number(p.profileViews||0)+" profile views"));
   $("viewProfileRaces").textContent=String(p.races||0);
   $("viewProfileWins").textContent=String(p.wins||0);
   $("viewProfileBestTime").textContent=p.bestRaceTime==null?"—":formatTime(p.bestRaceTime);
@@ -2130,6 +2135,8 @@ async function sendRoomChat(event){
   finally{chatSending=false;$("chatSendButton").disabled=false;input.focus();}
 }
 $("chatForm").addEventListener("submit",sendRoomChat);
+async function sendQuickChat(message){if(!activeRoom||!currentUser||!["waiting","racing"].includes(activeRoom.status))return;try{await db.collection("rooms").doc(activeRoom.id).collection("chat").add({uid:currentUser.uid,username:currentUsername||"Player",text:message,createdAt:firebase.firestore.FieldValue.serverTimestamp()});}catch(error){setToast(authError(error));}}
+document.querySelectorAll("[data-quick-chat]").forEach(button=>button.addEventListener("click",()=>sendQuickChat(button.dataset.quickChat)));
 $("chatLauncher").addEventListener("click",()=>setRoomChatOpen(true));
 $("chatClose").addEventListener("click",()=>setRoomChatOpen(false));
 
@@ -2172,6 +2179,7 @@ async function handleStartAction(){
 $("guestSignupButton").addEventListener("click",()=>authMode("signup"));
 $("dailyRunButton").addEventListener("click",startDailyRun);
 $("dailyHistoryButton").addEventListener("click",openDailyHistory);
+renderDailyBonus();
 $("dailyHistoryClose").addEventListener("click",()=>$("dailyHistoryModal").classList.add("hidden"));
 $("dailyHistoryModal").addEventListener("click",event=>{if(event.target===$("dailyHistoryModal"))$("dailyHistoryModal").classList.add("hidden");});
 $("randomMatchButton").addEventListener("click",startRandomMatch);
