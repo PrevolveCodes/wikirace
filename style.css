@@ -391,3 +391,18 @@ html[data-theme="dark"] .chat-launcher{background:#8ab4f8;color:#202122}
   .multiplayer-result-stats span{font-size:11px}
   .opponent-finished-modal{padding:24px 19px}
 }
+
+
+/* Separate Solo and Multiplayer home tabs */
+.home-tabs{grid-area:tabs;display:flex;gap:4px;margin:28px 0 22px;border-bottom:1px solid var(--line);width:100%}
+.home-tab{position:relative;padding:11px 18px;border:0;border-bottom:3px solid transparent;background:transparent;color:var(--muted);font:600 14px Arial,sans-serif;cursor:pointer}
+.home-tab:hover{color:var(--text);background:var(--surface-soft)}
+.home-tab.active{border-bottom-color:var(--blue);color:var(--text)}
+#homeScreen:not(.show-multiplayer) .account-panel{display:none}
+#homeScreen.show-multiplayer .hero{grid-template-columns:minmax(0,1fr);grid-template-areas:"eyebrow" "title" "copy" "tabs" "account" "foot";max-width:900px}
+#homeScreen.show-multiplayer .hero h1{max-width:760px}
+#homeScreen.show-multiplayer .hero-copy{max-width:700px}
+#homeScreen.show-multiplayer .setup-card,#homeScreen.show-multiplayer .daily-panel{display:none}
+#homeScreen.show-multiplayer .account-panel{grid-area:account;display:block;width:100%;max-width:760px;margin:0 auto;padding:28px}
+#homeScreen.show-multiplayer .hero-foot{grid-area:foot}
+@media(max-width:760px){.home-tabs{margin:22px 0 18px}.home-tab{flex:1;padding:11px 8px}#homeScreen.show-multiplayer .account-panel{padding:20px 17px}}
