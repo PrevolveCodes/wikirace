@@ -14,7 +14,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-  <script src="app.js?v=remove-new-route-1" defer></script>
+  <script src="app.js?v=hide-tabs-in-race-1" defer></script>
 </head>
 <body>
   <div class="app-shell">
@@ -31,7 +31,7 @@
       </div>
     </header>
 
-    <div class="home-tabs" role="tablist" aria-label="Game mode"><button class="home-tab active" id="soloTab" type="button" role="tab" aria-selected="true" aria-controls="soloTabPanel">Solo</button><button class="home-tab" id="multiplayerTab" type="button" role="tab" aria-selected="false" aria-controls="multiplayerTabPanel">Multiplayer</button><button class="home-tab" id="dailyTab" type="button" role="tab" aria-selected="false" aria-controls="dailyTabPanel">Daily Run</button></div>
+    <div class="home-tabs" id="homeTabs" role="tablist" aria-label="Game mode"><button class="home-tab active" id="soloTab" type="button" role="tab" aria-selected="true" aria-controls="soloTabPanel">Solo</button><button class="home-tab" id="multiplayerTab" type="button" role="tab" aria-selected="false" aria-controls="multiplayerTabPanel">Multiplayer</button><button class="home-tab" id="dailyTab" type="button" role="tab" aria-selected="false" aria-controls="dailyTabPanel">Daily Run</button></div>
 
     <main>
       <section class="screen active" id="homeScreen">
