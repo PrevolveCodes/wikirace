@@ -969,14 +969,6 @@ function setHomeTab(tab) {
   const direction = tabOrder[tab] > tabOrder[activeHomeTab] ? "right" : "left";
   activeHomeTab = tab;
 
-  // Slide the home view in the direction of the selected tab.
-  const homeViews = [$("homeScreen").querySelector(".hero"), $("dailyPanel")];
-  homeViews.forEach(view => {
-    view.classList.remove("tab-swipe-from-left", "tab-swipe-from-right");
-    void view.offsetWidth;
-    view.classList.add(direction === "right" ? "tab-swipe-from-right" : "tab-swipe-from-left");
-  });
-
   const multiplayer = tab === "multiplayer";
   const daily = tab === "daily";
   $("homeScreen").classList.toggle("show-multiplayer", multiplayer);
@@ -990,6 +982,13 @@ function setHomeTab(tab) {
   $("soloTabPanel").setAttribute("aria-hidden", String(multiplayer || daily));
   $("accountPanel").setAttribute("aria-hidden", String(!multiplayer));
   $("dailyPanel").setAttribute("aria-hidden", String(!daily));
+
+  // Animate only the newly visible page, after its display state has changed.
+  const activeView = daily ? $("dailyPanel") : $("homeScreen").querySelector(".hero");
+  activeView.classList.remove("tab-swipe-from-left", "tab-swipe-from-right");
+  void activeView.offsetWidth;
+  activeView.classList.add(direction === "right" ? "tab-swipe-from-right" : "tab-swipe-from-left");
+
   window.scrollTo({ top: 0, behavior: "instant" });
 }
 $("soloTab").addEventListener("click", () => setHomeTab("solo"));
