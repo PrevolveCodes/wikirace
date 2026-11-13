@@ -506,3 +506,26 @@ html[data-theme="dark"] .daily-challenge-card .daily-route{background:var(--surf
 #homeScreen:not(.show-multiplayer):not(.show-daily) .hero-intro .eyebrow{margin-bottom:14px}
 #homeScreen:not(.show-multiplayer):not(.show-daily) .hero-intro h1{line-height:1.12;margin-bottom:20px}
 #homeScreen:not(.show-multiplayer):not(.show-daily) .hero-intro .hero-copy{line-height:1.75}
+
+/* Profile pages and clearer friend navigation */
+.friends-tabs{display:flex;gap:5px;margin:0 0 18px;border-bottom:1px solid var(--line)}
+.friends-tab{padding:10px 12px;border:0;border-bottom:2px solid transparent;background:transparent;color:var(--muted);font-size:12px;cursor:pointer}
+.friends-tab.active{border-bottom-color:var(--blue);color:var(--text)}
+.friends-tab-count{display:inline-grid;place-items:center;min-width:17px;height:17px;margin-left:4px;padding:0 4px;background:var(--blue);color:#fff;font-size:10px}
+.friends-view{display:none}.friends-view.active{display:block}.friends-view h3{margin:8px 0 12px}
+.profile-backdrop{position:fixed;inset:0;z-index:31;display:grid;place-items:center;padding:18px;background:#20212288}
+.profile-modal{position:relative;width:min(100%,500px);max-height:85vh;overflow:auto;padding:30px;border:1px solid var(--line);background:var(--surface);color:var(--text)}
+.profile-hero{display:flex;align-items:center;gap:16px;margin:6px 0 24px}
+.profile-avatar{display:grid;place-items:center;width:62px;height:62px;flex:none;border:1px solid var(--line);background:var(--surface-soft);color:var(--text);font:400 30px Georgia,serif}
+.profile-hero h2{margin:5px 0;font:400 27px Georgia,serif;overflow-wrap:anywhere}
+.profile-hero p{margin:0;color:var(--muted);font-size:11px}
+.profile-modal .profile-stat-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0 0 22px}
+.profile-modal .profile-stat-grid>div{display:flex;flex-direction:column;gap:6px;padding:12px;border:1px solid var(--line);background:var(--surface-soft);min-width:0}
+.profile-modal .profile-stat-grid span{color:var(--muted);font-size:10px}
+.profile-modal .profile-stat-grid strong{font-size:18px;overflow-wrap:anywhere}
+.profile-daily-section{padding-top:17px;border-top:1px solid var(--line)}
+.profile-daily-section h3{margin:0 0 12px;font:400 19px Georgia,serif}
+.profile-daily-stats{display:flex;gap:22px;flex-wrap:wrap;margin-bottom:14px}
+.profile-daily-stats span{display:flex;flex-direction:column;gap:4px;color:var(--muted);font-size:11px}
+.profile-daily-stats strong{color:var(--text);font-size:15px}
+@media(max-width:480px){.friends-modal,.profile-modal{padding:25px 18px}.friends-tabs{gap:0}.friends-tab{padding:10px 8px;font-size:11px}.profile-modal .profile-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.friend-row{align-items:flex-start;flex-direction:column}.friend-actions{width:100%;flex-wrap:wrap}}
