@@ -25,7 +25,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
 .theme-control:after{content:"▾";position:absolute;right:9px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
 main{flex:1;width:100%}
 .screen{display:none}.screen.active{display:block}
-.hero{max-width:1160px;margin:66px auto 70px;display:grid;grid-template-columns:minmax(0,.92fr) minmax(440px,1.08fr);grid-template-areas:"eyebrow setup" "title setup" "copy setup" "account account" "foot foot";column-gap:64px;row-gap:0;align-items:start;text-align:left}
+.hero{max-width:1160px;margin:66px auto 70px;display:grid;grid-template-columns:minmax(0,.92fr) minmax(440px,1.08fr);grid-template-areas:"eyebrow setup" "title setup" "copy setup" "tabs tabs" "account account" "foot foot";column-gap:64px;row-gap:0;align-items:start;text-align:left}
 .eyebrow{grid-area:eyebrow;display:flex;align-items:center;gap:10px;margin:10px 0 14px;color:var(--muted);font:600 11px Arial,sans-serif;letter-spacing:1.1px;text-transform:uppercase}
 .eyebrow-line{width:18px;height:1px;background:var(--line)}
 h1,h2,h3,p{margin-top:0}
