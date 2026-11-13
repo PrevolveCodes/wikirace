@@ -257,7 +257,7 @@ function xpForNextLevel(level){return Math.pow(Math.max(1,Number(level)||1),2)*1
 function titleForLevel(level){if(level>=50)return "Encyclopedia Legend";if(level>=30)return "Wiki Master";if(level>=20)return "Knowledge Expert";if(level>=10)return "Page Navigator";if(level>=5)return "Article Explorer";return "Newcomer";}
 function awardXp(clicks,seconds,difficulty){const bonus={easy:0,medium:5,hard:10}[difficulty]||0;return Math.max(10,20+bonus+Math.max(0,10-Number(clicks||0))+(Number(seconds||0)<=30?10:0));}
 function getDailyBonus(){const day=Math.floor(Date.now()/86400000),challenges=[{title:"Quick Finish",description:"Finish any race in under 60 seconds for +30 XP.",test:(c,s)=>s<60},{title:"Efficient Explorer",description:"Reach the destination in 8 clicks or fewer for +30 XP.",test:(c)=>c<=8},{title:"Hard Mode Hero",description:"Complete a Hard race for +30 XP.",test:(c,s,d)=>d==="hard"},{title:"Speed Reader",description:"Finish in 30 seconds or less for +30 XP.",test:(c,s)=>s<=30}];return challenges[day%challenges.length];}
-function renderDailyBonus(){const challenge=getDailyBonus();const title=$("dailyBonusTitle"),description=$("dailyBonusDescription");if(title)title.textContent=challenge.title;if(description)description.textContent=challenge.description;}
+function renderDailyBonus(claimed=false){const challenge=getDailyBonus();const title=$("dailyBonusTitle"),description=$("dailyBonusDescription"),status=$("dailyBonusStatus"),card=$("dailyBonusCard");if(title)title.textContent=challenge.title;if(description)description.textContent=challenge.description;if(status){status.textContent=claimed?"DONE":"NOT COMPLETE";status.classList.toggle("is-done",claimed);}if(card)card.classList.toggle("is-complete",claimed);}
 
 function renderProgression(profile={}){const xp=Number(profile.xp||0),level=levelFromXp(xp),floor=xpForNextLevel(level-1),ceil=xpForNextLevel(level),pct=Math.max(0,Math.min(100,(xp-floor)/(ceil-floor)*100));const el=$("profileLevel");if(el)el.textContent="Level "+level;const label=$("profileXp");if(label)label.textContent=xp+" XP · "+Math.max(0,ceil-xp)+" to next level";const bar=$("profileXpBar");if(bar)bar.style.width=pct+"%";const title=$("profileTitleLabel");if(title)title.textContent=profile.customTitle||titleForLevel(level);}
 function playRaceSound(kind){try{if(localStorage.getItem("wikirace-sounds")==="off")return;const C=window.AudioContext||window.webkitAudioContext;if(!C)return;const ctx=new C(),osc=ctx.createOscillator(),gain=ctx.createGain(),now=ctx.currentTime;const tone={click:[520,.04],win:[760,.14],level:[920,.2],start:[640,.08]}[kind]||[520,.04];osc.connect(gain);gain.connect(ctx.destination);osc.frequency.setValueAtTime(tone[0],now);osc.frequency.exponentialRampToValueAtTime(tone[0]*1.35,now+tone[1]);gain.gain.setValueAtTime(.05,now);gain.gain.exponentialRampToValueAtTime(.001,now+tone[1]);osc.start(now);osc.stop(now+tone[1]);osc.onended=()=>ctx.close();}catch(error){}}
@@ -767,7 +767,9 @@ function finishRace() {
     const userId=currentUser.uid;
     const raceSeconds=state.seconds;
     const raceClicks=state.clicks;
-    const earnedXp=awardXp(raceClicks,raceSeconds,state.difficulty)+((state.mode==="solo"&&getDailyBonus().test(raceClicks,raceSeconds,state.difficulty))?30:0);
+    const baseXp=awardXp(raceClicks,raceSeconds,state.difficulty);
+    const bonusDate=utcDateKey();
+    const bonusEligible=state.mode==="solo"&&getDailyBonus().test(raceClicks,raceSeconds,state.difficulty);
     const profileRef=db.collection("users").doc(userId);
     db.runTransaction(async transaction=>{
       const snapshot=await transaction.get(profileRef);
@@ -775,7 +777,8 @@ function finishRace() {
       transaction.set(profileRef,{
         races:Number(profile.races||0)+1,
         wins:Number(profile.wins||0)+1,
-        xp:Number(profile.xp||0)+earnedXp,
+        xp:Number(profile.xp||0)+baseXp+(bonusEligible&&profile.dailyBonusClaimedDate!==bonusDate?30:0),
+        ...(bonusEligible&&profile.dailyBonusClaimedDate!==bonusDate?{dailyBonusClaimedDate:bonusDate}:{}),
         bestRaceTime:profile.bestRaceTime==null?raceSeconds:Math.min(Number(profile.bestRaceTime),raceSeconds),
         fewestRaceClicks:profile.fewestRaceClicks==null?raceClicks:Math.min(Number(profile.fewestRaceClicks),raceClicks),
         raceHistory:[...(Array.isArray(profile.raceHistory)?profile.raceHistory:[]),{date:new Date().toISOString(),start:state.start,goal:state.goal,clicks:raceClicks,seconds:raceSeconds,difficulty:state.difficulty||"standard",mode:state.mode||"solo"}].slice(-50),
@@ -783,7 +786,7 @@ function finishRace() {
       },{merge:true});
     }).then(()=>profileRef.get()).then(async snapshot=>{
       const profile=snapshot.data()||{};
-      renderProfileProgress(profile);renderProgression(profile);
+      renderProfileProgress(profile);renderProgression(profile);renderDailyBonus(profile.dailyBonusClaimedDate===bonusDate);
       await db.collection("publicProfiles").doc(userId).set({
         uid:userId,username:currentUsername,races:Number(profile.races||0),wins:Number(profile.wins||0),xp:Number(profile.xp||0),longestStreak:Number(profile.longestStreak||0),customTitle:profile.customTitle||"",
         bestRaceTime:profile.bestRaceTime??null,fewestRaceClicks:profile.fewestRaceClicks??null,
@@ -1189,7 +1192,7 @@ async function profileFor(user) {
     await ref.set(profile);
   }
   currentUsername = profile.username || (user.displayName || (user.email || "Player").split("@")[0]).slice(0,20);
-  renderProfileProgress(profile);renderProgression(profile);
+  renderProfileProgress(profile);renderProgression(profile);renderDailyBonus(profile.dailyBonusClaimedDate===utcDateKey());
   await db.collection("publicProfiles").doc(user.uid).set({
     uid:user.uid,username:currentUsername,
     races:Number(profile.races||0),wins:Number(profile.wins||0),xp:Number(profile.xp||0),longestStreak:Number(profile.longestStreak||0),customTitle:profile.customTitle||"",
@@ -1216,6 +1219,7 @@ auth.onAuthStateChanged(async user => {
   if (user) { try { await profileFor(user); await claimGuestRaceStats(user); listenForGameInvites(); startPresenceTracking(); } catch(e) { setToast(authError(e)); } }
   else { if(matchmakingActive)cancelRandomMatch(false); if(presenceHeartbeat)clearInterval(presenceHeartbeat); presenceHeartbeat=null; document.removeEventListener("visibilitychange",handlePresenceVisibility); stopFriendPresenceListeners(); if(inviteUnsubscribe)inviteUnsubscribe(); inviteUnsubscribe=null; $("gameInviteNotifications").replaceChildren(); detachRoomListeners(); activeRoom=null; activeRoomCode=""; $("roomStatus").classList.add("hidden"); }
   renderAccount();
+  if(!user)renderDailyBonus(false);
   loadDailyChallenge();
 });
 $("accountButton").addEventListener("click",()=>currentUser ? openProfile(currentUser.uid,currentUsername,true) : authMode("signin"));
