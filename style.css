@@ -465,3 +465,8 @@ html[data-theme="dark"] .daily-challenge-card .daily-route{background:var(--surf
  .daily-route strong{font-size:14px}
  .daily-challenge-card .daily-actions{align-items:flex-start;flex-direction:column}
 }
+
+
+/* Random matchmaking */
+.random-match-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:12px 0 4px}
+.matchmaking-status{margin:10px 0 14px;padding:12px 14px;border:1px solid var(--line);background:var(--surface-soft);color:var(--text);font-size:12px}
