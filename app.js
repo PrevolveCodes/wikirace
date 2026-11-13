@@ -256,7 +256,7 @@ async function chooseRoute() {
 function levelFromXp(xp){return Math.floor(Math.sqrt(Math.max(0,Number(xp)||0)/100))+1;}
 function xpForNextLevel(level){return Math.pow(Math.max(1,Number(level)||1),2)*100;}
 function titleForLevel(level){if(level>=50)return "Encyclopedia Legend";if(level>=30)return "Wiki Master";if(level>=20)return "Knowledge Expert";if(level>=10)return "Page Navigator";if(level>=5)return "Article Explorer";return "Newcomer";}
-function awardXp(clicks,seconds,difficulty){const bonus={easy:0,medium:5,hard:10}[difficulty]||0;return Math.max(10,20+bonus+Math.max(0,10-Number(clicks||0))+(Number(seconds||0)<=30?10:0));}
+function awardXp(clicks,seconds,difficulty){const count=Math.max(0,Number(clicks||0)),time=Math.max(0,Number(seconds||0)),difficultyBonus={easy:0,medium:2,hard:4}[difficulty]||0;const efficiencyBonus=(count<=3?5:count<=5?3:0),speedBonus=(time<=30?3:time<60?2:0);return 12+difficultyBonus+efficiencyBonus+speedBonus;}
 const POWERUP_CATALOG=[{id:"hint",name:"Hint",description:"Shows the first letter and word count of the destination.",cost:1},{id:"undo",name:"Undo",description:"Return to your previous article without adding a click.",cost:1},{id:"timeFreeze",name:"Time Freeze",description:"Pauses the displayed timer for 10 seconds. Real elapsed time still determines records and rewards.",cost:2},{id:"linkFinder",name:"Link Finder",description:"Highlights links related to your destination.",cost:1},{id:"clickShield",name:"Click Shield",description:"Your next article navigation will not add a click.",cost:2}];
 const POWERUP_EXCHANGE_RATE=100;let powerupInventory={},spendableXp=0,gameTokens=0,powerupShopBusy=false;
 function normalizeInventory(v={}){const o={};POWERUP_CATALOG.forEach(p=>o[p.id]=Math.max(0,Math.floor(Number(v?.[p.id]||0))));return o;}
@@ -271,7 +271,7 @@ async function activatePowerup(id){if(!state.startedAt||!state.powerupsEnabled||
 function finishTimeFreezeAccounting(now=Date.now()){if(state.timeFreezeStartedAt){state.timeFreezeTotalMs+=Math.max(0,Math.min(10000,now-state.timeFreezeStartedAt));state.timeFreezeStartedAt=0;state.timeFreezeUntil=0;}}
 function resetRacePowerups(enabled=false){state.startedAt=0;state.powerupsEnabled=!!enabled;state.timeFreezeStartedAt=0;state.timeFreezeUntil=0;state.timeFreezeTotalMs=0;state.timeFreezeUsed=false;state.timeFreezeRefundPending=false;state.clickShieldActive=false;state.powerupsUsed=[];renderRacePowerups();}
 
-function getDailyBonus(){const day=Math.floor(Date.now()/86400000),challenges=[{title:"Quick Finish",description:"Finish any race in under 60 seconds for +30 XP.",test:(c,s)=>s<60},{title:"Efficient Explorer",description:"Reach the destination in 8 clicks or fewer for +30 XP.",test:(c)=>c<=8},{title:"Hard Mode Hero",description:"Complete a Hard race for +30 XP.",test:(c,s,d)=>d==="hard"},{title:"Speed Reader",description:"Finish in 30 seconds or less for +30 XP.",test:(c,s)=>s<=30}];return challenges[day%challenges.length];}
+function getDailyBonus(){const day=Math.floor(Date.now()/86400000),challenges=[{title:"Quick Finish",description:"Finish any race in under 60 seconds for +15 XP.",test:(c,s)=>s<60},{title:"Efficient Explorer",description:"Reach the destination in 8 clicks or fewer for +15 XP.",test:(c)=>c<=8},{title:"Hard Mode Hero",description:"Complete a Hard race for +15 XP.",test:(c,s,d)=>d==="hard"},{title:"Speed Reader",description:"Finish in 30 seconds or less for +15 XP.",test:(c,s)=>s<=30}];return challenges[day%challenges.length];}
 function renderDailyBonus(claimed=false){const challenge=getDailyBonus();const title=$("dailyBonusTitle"),description=$("dailyBonusDescription"),status=$("dailyBonusStatus"),card=$("dailyBonusCard");if(title)title.textContent=challenge.title;if(description)description.textContent=challenge.description;if(status){status.textContent=claimed?"DONE":"NOT COMPLETE";status.classList.toggle("is-done",claimed);}if(card)card.classList.toggle("is-complete",claimed);}
 
 function renderProgression(profile={}){const xp=Number(profile.xp||0),level=levelFromXp(xp),floor=xpForNextLevel(level-1),ceil=xpForNextLevel(level),pct=Math.max(0,Math.min(100,(xp-floor)/(ceil-floor)*100));const el=$("profileLevel");if(el)el.textContent="Level "+level;const label=$("profileXp");if(label)label.textContent=xp+" XP · "+Math.max(0,ceil-xp)+" to next level";const bar=$("profileXpBar");if(bar)bar.style.width=pct+"%";const title=$("profileTitleLabel");if(title)title.textContent=profile.customTitle||titleForLevel(level);}
@@ -804,8 +804,8 @@ function finishRace() {
       transaction.set(profileRef,{
         races:Number(profile.races||0)+1,
         wins:Number(profile.wins||0)+1,
-        xp:Number(profile.xp||0)+baseXp+(bonusEligible&&profile.dailyBonusClaimedDate!==bonusDate?30:0),
-        spendableXp:Number(profile.spendableXp||0)+baseXp+(bonusEligible&&profile.dailyBonusClaimedDate!==bonusDate?30:0),
+        xp:Number(profile.xp||0)+baseXp+(bonusEligible&&profile.dailyBonusClaimedDate!==bonusDate?15:0),
+        spendableXp:Number(profile.spendableXp||0)+baseXp+(bonusEligible&&profile.dailyBonusClaimedDate!==bonusDate?15:0),
         ...(state.timeFreezeRefundPending?{powerupInventory:{...normalizeInventory(profile.powerupInventory||{}),timeFreeze:normalizeInventory(profile.powerupInventory||{}).timeFreeze+1}}:{}),
         ...(bonusEligible&&profile.dailyBonusClaimedDate!==bonusDate?{dailyBonusClaimedDate:bonusDate}:{}),
         bestRaceTime:profile.bestRaceTime==null?raceSeconds:Math.min(Number(profile.bestRaceTime),raceSeconds),
