@@ -1129,6 +1129,7 @@ function renderAccount() {
   $("accountButton").textContent = currentUser ? (currentUsername || currentUser.displayName || currentUser.email || "Account").split(" ")[0] : "Sign in";
   $("topSignOutButton").classList.toggle("hidden", !currentUser);
   $("accountStatus").textContent = currentUser ? (currentUsername || currentUser.displayName || currentUser.email) : "Not signed in";
+  $("topFriendsButton").classList.toggle("hidden",!currentUser);
   $("signedOutArea").classList.toggle("hidden", !!currentUser);
   $("signedInArea").classList.toggle("hidden", !currentUser);
 }
@@ -1147,11 +1148,11 @@ async function profileFor(user) {
   renderProfileProgress(profile);
   await db.collection("publicProfiles").doc(user.uid).set({
     uid:user.uid,username:currentUsername,
-    currentStreak:Number(profile.currentStreak||0),
-    longestStreak:Number(profile.longestStreak||0),
-    totalDailyRuns:Number(profile.totalDailyRuns||0),
-    streakBadges:profile.streakBadges||[],
-    profileFrame:profile.profileFrame||"none"
+    races:Number(profile.races||0),wins:Number(profile.wins||0),
+    bestRaceTime:profile.bestRaceTime??null,fewestRaceClicks:profile.fewestRaceClicks??null,
+    currentStreak:Number(profile.currentStreak||0),longestStreak:Number(profile.longestStreak||0),
+    totalDailyRuns:Number(profile.totalDailyRuns||0),streakBadges:profile.streakBadges||[],
+    profileFrame:profile.profileFrame||"none",createdAt:profile.createdAt||null
   },{merge:true}).catch(error=>console.warn("Could not sync public profile:",error));
   const key = usernameKey(currentUsername);
   if(key) {
@@ -1173,7 +1174,11 @@ auth.onAuthStateChanged(async user => {
   renderAccount();
   loadDailyChallenge();
 });
-$("accountButton").addEventListener("click",()=>currentUser ? openFriends() : authMode("signin"));
+$("accountButton").addEventListener("click",()=>currentUser ? openProfile(currentUser.uid,currentUsername,true) : authMode("signin"));
+$("topFriendsButton").addEventListener("click",openFriends);
+$("profileClose").addEventListener("click",()=>$("profileModal").classList.add("hidden"));
+$("profileModal").addEventListener("click",e=>{if(e.target===$("profileModal"))$("profileModal").classList.add("hidden");});
+document.querySelectorAll("[data-friends-tab]").forEach(button=>button.addEventListener("click",()=>setFriendsTab(button.dataset.friendsTab)));
 $("googleSignIn").addEventListener("click",async()=>{try{await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());}catch(e){setToast(authError(e));}});
 $("modalGoogleSignIn").addEventListener("click",async()=>{try{await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());$("authModal").classList.add("hidden");}catch(e){$("authError").textContent=authError(e);}});
 $("emailSignIn").addEventListener("click",()=>authMode("signin"));
@@ -1198,7 +1203,37 @@ $("topSignOutButton").addEventListener("click",async()=>{if(activeRoomCode)await
 $("friendsClose").addEventListener("click",()=>$("friendsModal").classList.add("hidden"));
 $("friendsModal").addEventListener("click",e=>{if(e.target===$("friendsModal"))$("friendsModal").classList.add("hidden");});
 $("addFriendButton").addEventListener("click",addFriendByUsername);
-$("friendUsernameInput").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();addFriendByUsername();}});
+function setFriendsTab(tab){
+  document.querySelectorAll("[data-friends-tab]").forEach(button=>button.classList.toggle("active",button.dataset.friendsTab===tab));
+  $("friendsFindView").classList.toggle("active",tab==="find");
+  $("friendsRequestsView").classList.toggle("active",tab==="requests");
+  $("friendsListView").classList.toggle("active",tab==="friends");
+}
+async function openProfile(uid,name,isOwn=false){
+  if(!uid)return;
+  $("profileModal").classList.remove("hidden");
+  $("profileTitle").textContent=name||"WikiRace player";
+  $("profileAvatar").textContent=(name||"W").trim().charAt(0).toUpperCase();
+  $("profileJoined").textContent=isOwn?"Your WikiRace profile":"WikiRace player";
+  ["viewProfileRaces","viewProfileWins","viewProfileBestTime","viewProfileFewest","viewProfileStreak","viewProfileLongest"].forEach(id=>$(id).textContent="…");
+  $("viewProfileBadges").replaceChildren();
+  $("profileInviteButton").classList.add("hidden");
+  try{
+    const snap=await db.collection(isOwn?"users":"publicProfiles").doc(uid).get();
+    if(!snap.exists)throw new Error("This profile is not available.");
+    const p=snap.data()||{};
+    $("profileTitle").textContent=p.username||name||"WikiRace player";
+    $("profileAvatar").textContent=(p.username||name||"W").trim().charAt(0).toUpperCase();
+    $("profileJoined").textContent=p.createdAt?.toDate?.()?("Member since "+p.createdAt.toDate().toLocaleDateString(undefined,{month:"long",year:"numeric"})):(isOwn?"Your WikiRace profile":"WikiRace player");
+    $("viewProfileRaces").textContent=String(p.races||0);$("viewProfileWins").textContent=String(p.wins||0);
+    $("viewProfileBestTime").textContent=p.bestRaceTime==null?"—":formatTime(p.bestRaceTime);
+    $("viewProfileFewest").textContent=p.fewestRaceClicks==null?"—":String(p.fewestRaceClicks);
+    $("viewProfileStreak").textContent=(p.currentStreak||0)+" days";$("viewProfileLongest").textContent=(p.longestStreak||0)+" days";
+    const badges=p.streakBadges||[];
+    if(!badges.length){const empty=document.createElement("span");empty.className="profile-empty";empty.textContent="No Daily Run badges yet.";$("viewProfileBadges").appendChild(empty);}
+    else badges.slice().sort((a,b)=>a-b).forEach(m=>{const badge=document.createElement("span");badge.className="profile-badge";badge.textContent=formatDailyBadge(m);$("viewProfileBadges").appendChild(badge);});
+  }catch(error){setToast(error.message||authError(error));}
+}
 function friendMessage(message,isError=false){$("friendsMessage").textContent=message;$("friendsMessage").classList.toggle("error",isError);}
 function openFriends(){
   if(!currentUser)return authMode("signin");
@@ -1228,6 +1263,7 @@ async function loadFriends(){
       db.collection("friendships").where("members","array-contains",currentUser.uid).get()
     ]);
     const pending=incoming.docs.filter(doc=>doc.data().status==="pending");
+    $("friendRequestCount").textContent=String(pending.length);$("friendRequestCount").classList.toggle("hidden",pending.length===0);
     if(!pending.length){const p=document.createElement("p");p.className="friends-empty";p.textContent="No pending requests.";requests.appendChild(p);}
     pending.forEach(doc=>{
       const req=doc.data();
@@ -1240,7 +1276,7 @@ async function loadFriends(){
     connections.forEach(doc=>{
       const data=doc.data(), otherUid=data.members.find(id=>id!==currentUser.uid);
       const name=data.usernames?.[otherUid]||"WikiRace player";
-      const row=friendRow(name,"Friend",[{label:"Invite",kind:"friend-invite",run:()=>inviteFriend(otherUid,name)}]);
+      const row=friendRow(name,"Friend",[{label:"Profile",run:()=>openProfile(otherUid,name,false)},{label:"Invite",kind:"friend-invite",run:()=>inviteFriend(otherUid,name)}]);
       friends.appendChild(row);
       watchFriendPresence(otherUid,row);
     });
