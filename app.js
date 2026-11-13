@@ -1344,9 +1344,11 @@ function openFriends(){
 function friendRow(name,detail,actions=[]){
   const row=document.createElement("div");row.className="friend-row";
   const info=document.createElement("div");info.className="friend-info";
+  const avatar=document.createElement("div");avatar.className="friend-avatar";avatar.textContent=(name||"W").trim().charAt(0).toUpperCase();
+  const copy=document.createElement("div");copy.className="friend-copy";
   const strong=document.createElement("strong");strong.textContent=name;
   const small=document.createElement("span");small.textContent=detail||"";
-  info.append(strong,small);row.appendChild(info);
+  copy.append(strong,small);info.append(avatar,copy);row.appendChild(info);
   const controls=document.createElement("div");controls.className="friend-actions";
   actions.forEach(({label,run,kind})=>{const b=document.createElement("button");b.type="button";b.className="secondary-button"+(kind?" "+kind:"");b.textContent=label;b.addEventListener("click",run);controls.appendChild(b);});
   row.appendChild(controls);return row;
@@ -1366,10 +1368,11 @@ async function loadFriends(){
     if(!pending.length){const p=document.createElement("p");p.className="friends-empty";p.textContent="No pending requests.";requests.appendChild(p);}
     pending.forEach(doc=>{
       const req=doc.data();
-      requests.appendChild(friendRow(req.fromUsername||"WikiRace player","Wants to be your friend",[
+      const requestRow=friendRow(req.fromUsername||"WikiRace player","Wants to be your friend",[
         {label:"Accept",kind:"friend-accept",run:()=>acceptFriendRequest(doc.id,req)},
         {label:"Decline",run:()=>declineFriendRequest(doc.id)}
-      ]));
+      ]);
+      requests.appendChild(requestRow);loadFriendAvatar(req.fromUid,requestRow,req.fromUsername);
     });
     if(connections.empty){const p=document.createElement("p");p.className="friends-empty";p.textContent="No friends added yet.";friends.appendChild(p);}
     connections.forEach(doc=>{
@@ -1377,6 +1380,7 @@ async function loadFriends(){
       const name=data.usernames?.[otherUid]||"WikiRace player";
       const row=friendRow(name,"Friend",[{label:"Profile",run:()=>openProfile(otherUid,name,false)},{label:"Invite",kind:"friend-invite",run:()=>inviteFriend(otherUid,name)}]);
       friends.appendChild(row);
+      loadFriendAvatar(otherUid,row,name);
       watchFriendPresence(otherUid,row);
     });
   }catch(error){friendMessage(authError(error),true);}
@@ -1397,6 +1401,15 @@ function updateFriendPresenceDisplay(){
     const label=el.querySelector(".presence-label");
     if(label)label.textContent=online?"Online":"Offline";
   });
+}
+async function loadFriendAvatar(uid,row,name){
+ if(!uid||!row)return;
+ try{
+  const snap=await db.collection("publicProfiles").doc(uid).get();
+  const photo=snap.exists?(snap.data()?.photoDataUrl||""):"";
+  const avatar=row.querySelector(".friend-avatar");
+  if(avatar&&photo){avatar.style.backgroundImage='url("'+photo+'")';avatar.classList.add("has-photo");avatar.textContent="";}
+ }catch(error){console.warn("Could not load friend profile picture:",error);}
 }
 function watchFriendPresence(uid,row){
   const status=document.createElement("span");
