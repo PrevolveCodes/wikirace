@@ -42,23 +42,23 @@
           
           <div class="setup-card" id="soloTabPanel" role="tabpanel" aria-labelledby="soloTab">
             <div class="setup-heading">
-              <div><span class="section-kicker">SHARED GAME SETTINGS</span><h2>Set up the race</h2></div>
+              <div><span class="section-kicker">RACE SETTINGS</span><h2>Customize your game</h2></div>
               <span class="random-tag"><span>✳</span> RANDOM ROUTE</span>
             </div>
-            <div class="difficulty-label">DIFFICULTY · SOLO AND MULTIPLAYER</div>
+            <div class="difficulty-label">DIFFICULTY</div>
             <div class="difficulty-options" role="group" aria-label="Choose difficulty">
               <button class="difficulty-option selected" data-difficulty="easy"><span class="difficulty-icon easy-icon">●</span><span><strong>Easy</strong><small>Popular topics</small></span><span class="option-check">✓</span></button>
               <button class="difficulty-option" data-difficulty="medium"><span class="difficulty-icon medium-icon">◆</span><span><strong>Medium</strong><small>Anything goes</small></span><span class="option-check">✓</span></button>
               <button class="difficulty-option" data-difficulty="hard"><span class="difficulty-icon hard-icon">✦</span><span><strong>Hard</strong><small>Obscure topics</small></span><span class="option-check">✓</span></button>
             </div>
             <div class="custom-route-fields">
-              <div class="custom-route-heading">START AND DESTINATION · SOLO AND MULTIPLAYER</div>
+              <div class="custom-route-heading">START AND DESTINATION</div>
               <label>Starting article<input id="customStart" type="text" placeholder="e.g. Minecraft" autocomplete="off" maxlength="120"></label>
               <label>Destination article<input id="customGoal" type="text" placeholder="e.g. World War II" autocomplete="off" maxlength="120"></label>
-              <p class="custom-route-note">These settings apply to your solo races and any multiplayer game you create. Leave both blank for a random route.</p>
+              <p class="custom-route-note">These settings also apply to Solo. Leave both blank for a random route.</p>
             </div>
             <div class="race-rules">
-              <div class="custom-route-heading">RACE RULES · SOLO AND MULTIPLAYER</div>
+              <div class="custom-route-heading">RACE RULES</div>
               <label class="back-setting"><input type="checkbox" id="backEnabled" checked> Allow going back to previous articles</label>
               <label class="back-setting"><input type="checkbox" id="blockFindShortcuts"> Disable Ctrl+F, Ctrl+G, and F3</label>
               <label class="back-setting"><input type="checkbox" id="blockBrowserNavigation"> Disable browser back/forward shortcuts</label>
@@ -66,7 +66,7 @@
             <button class="primary-button" id="startButton"><span>Start a race</span><span class="button-arrow">→</span></button>
             <p class="setup-note">No account needed. Just you and the entire encyclopedia.</p>
           </div>
-          <section class="account-panel" id="accountPanel" role="tabpanel" aria-labelledby="multiplayerTab"><div class="account-panel-head"><div><span class="section-kicker">MULTIPLAYER</span><h3>Play with others</h3><p class="multiplayer-settings-note">The difficulty, articles, and race rules above will be used for the game you create.</p></div><span class="account-status" id="accountStatus">Not signed in</span></div><div id="signedOutArea"><p>Sign in to create a game code or join someone else&#39;s race.</p><div class="auth-actions"><button class="secondary-button" id="googleSignIn">Continue with Google</button><button class="secondary-button" id="emailSignIn">Email sign in</button><button class="secondary-button" id="emailSignUp">Create account</button></div></div><div id="signedInArea" class="hidden"><div class="room-actions"><button class="secondary-button" id="createRoomButton">Create game code</button><div class="join-code-row"><input id="joinCodeInput" maxlength="6" placeholder="Enter code" aria-label="Game code"><button class="secondary-button" id="joinRoomButton">Join</button></div></div><div id="roomStatus" class="room-status hidden"></div><button class="text-button account-logout" id="logoutButton">Sign out</button></div></section>
+          <section class="account-panel" id="accountPanel" role="tabpanel" aria-labelledby="multiplayerTab"><div class="account-panel-head"><div><span class="section-kicker">MULTIPLAYER</span><h3>Play with others</h3><p class="multiplayer-settings-note">Create a race for your friends or join one with a game code.</p></div><span class="account-status" id="accountStatus">Not signed in</span></div><div id="signedOutArea"><div class="multiplayer-step-title">1. Sign in or create an account</div><p>Accounts let you create rooms, invite friends, and keep track of your stats.</p><div class="auth-actions"><button class="secondary-button" id="googleSignIn">Continue with Google</button><button class="secondary-button" id="emailSignIn">Email sign in</button><button class="secondary-button" id="emailSignUp">Create account</button></div></div><div id="signedInArea" class="hidden"><div class="multiplayer-step-title">2. Create or join a game</div><div class="room-actions"><button class="secondary-button" id="createRoomButton">Create game code</button><div class="join-code-row"><input id="joinCodeInput" maxlength="6" placeholder="Enter code" aria-label="Game code"><button class="secondary-button" id="joinRoomButton">Join</button></div></div><div id="roomStatus" class="room-status hidden"></div><button class="text-button account-logout" id="logoutButton">Sign out</button></div></section>
           <div class="hero-foot"><span>01 <i></i> PICK A ROUTE</span><span>02 <i></i> FOLLOW THE LINKS</span><span>03 <i></i> REACH THE GOAL</span></div>
         </div>
       <section class="daily-panel" id="dailyPanel">
