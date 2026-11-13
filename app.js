@@ -1358,8 +1358,10 @@ async function openProfile(uid,name,isOwn=false){
    if(!publicSnap.exists)throw new Error("This player’s public profile has not been created yet. Ask them to sign in and refresh WikiRace.");
    p=publicSnap.data()||{};
   }
-  $("profileTitle").textContent=p.username||name||"WikiRace player";
-  $("profileOwnerBadge")?.classList.toggle("hidden",!(isOwn&&String(currentUser?.email||"").toLowerCase()==="prevolveyt@gmail.com"));
+  const profileTitle=$("profileTitle");
+  const ownerBadge=$("profileOwnerBadge");
+  profileTitle.replaceChildren(document.createTextNode(p.username||name||"WikiRace player"),ownerBadge);
+  ownerBadge.classList.toggle("hidden",!(isOwn&&String(currentUser?.email||"").toLowerCase()==="prevolveyt@gmail.com"));
   applyProfileAvatar(p.photoDataUrl||"",p.username||name);
   $("profileBio").textContent=p.profileBio||"No bio added yet.";
   $("profileEditButton").classList.toggle("hidden",!isOwn);
