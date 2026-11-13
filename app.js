@@ -1508,9 +1508,10 @@ async function tryFindRandomOpponent(){
   try{
     const waiting=await db.collection("matchmakingQueue")
       .where("status","==","waiting")
-      .where("difficulty","==",state.difficulty)
-      .limit(12).get();
-    const candidates=waiting.docs.filter(doc=>doc.id!==currentUser.uid);
+      .limit(20).get();
+    const candidates=waiting.docs.filter(doc=>
+      doc.id!==currentUser.uid && doc.data().difficulty===state.difficulty
+    );
     for(const candidate of candidates){
       const roomRef=db.collection("rooms").doc();
       const code=makeRoomCode();
