@@ -25,7 +25,11 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
 .theme-control:after{content:"▾";position:absolute;right:9px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
 main{flex:1;width:100%}
 .screen{display:none}.screen.active{display:block}
-.hero{max-width:1160px;margin:66px auto 70px;display:grid;grid-template-columns:minmax(0,.92fr) minmax(440px,1.08fr);grid-template-areas:"eyebrow setup" "title setup" "copy setup" "account account" "foot foot";column-gap:64px;row-gap:0;align-items:start;text-align:left}
+.hero{max-width:1160px;margin:66px auto 70px;display:grid;grid-template-columns:minmax(0,.92fr) minmax(440px,1.08fr);grid-template-areas:"intro setup" "account account" "foot foot";column-gap:64px;row-gap:0;align-items:start;text-align:left}
+.hero-intro{grid-area:intro;display:flex;flex-direction:column;align-items:flex-start;min-width:0}
+.hero-intro .eyebrow{margin:10px 0 14px}
+.hero-intro h1{margin:0 0 20px}
+.hero-intro .hero-copy{margin:0}
 .eyebrow{grid-area:eyebrow;display:flex;align-items:center;gap:10px;margin:10px 0 14px;color:var(--muted);font:600 11px Arial,sans-serif;letter-spacing:1.1px;text-transform:uppercase}
 .eyebrow-line{width:18px;height:1px;background:var(--line)}
 h1,h2,h3,p{margin-top:0}
@@ -399,13 +403,13 @@ html[data-theme="dark"] .chat-launcher{background:#8ab4f8;color:#202122}
 .home-tab:hover{color:var(--text);background:var(--surface-soft)}
 .home-tab.active{border-bottom-color:var(--blue);color:var(--text)}
 #homeScreen:not(.show-multiplayer) .account-panel{display:none}
-#homeScreen.show-multiplayer .hero{grid-template-columns:minmax(0,1.08fr) minmax(320px,.92fr);grid-template-areas:"eyebrow eyebrow" "title title" "copy copy" "account setup" "foot foot";column-gap:22px;row-gap:0;max-width:1160px;margin-top:42px}
+#homeScreen.show-multiplayer .hero{grid-template-columns:minmax(0,1.08fr) minmax(320px,.92fr);grid-template-areas:"intro intro" "account setup" "foot foot";column-gap:22px;row-gap:0;max-width:1160px;margin-top:42px}
 #homeScreen.show-multiplayer .hero h1{max-width:900px}
 #homeScreen.show-multiplayer .hero-copy{max-width:760px;margin-bottom:28px}
 #homeScreen.show-multiplayer .setup-card{grid-area:setup;display:block;width:100%;max-width:none;margin:0}#homeScreen.show-multiplayer .daily-panel{display:none}
 #homeScreen.show-multiplayer .account-panel{grid-area:account;display:block;width:100%;max-width:none;margin:0;padding:25px;align-self:start}
 #homeScreen.show-multiplayer .hero-foot{grid-area:foot;margin-top:26px}
-@media(max-width:900px){#homeScreen.show-multiplayer .hero{grid-template-columns:minmax(0,1fr);grid-template-areas:"eyebrow" "title" "copy" "setup" "account" "foot";max-width:760px;row-gap:0}#homeScreen.show-multiplayer .account-panel{margin-top:18px}}@media(max-width:760px){.home-tabs{width:calc(100% - 32px)}.home-tab{flex:1;padding:11px 8px}#homeScreen.show-multiplayer .account-panel{padding:20px 17px}}
+@media(max-width:900px){#homeScreen.show-multiplayer .hero{grid-template-columns:minmax(0,1fr);grid-template-areas:"intro" "setup" "account" "foot";max-width:760px;row-gap:0}#homeScreen.show-multiplayer .account-panel{margin-top:18px}}@media(max-width:760px){.home-tabs{width:calc(100% - 32px)}.home-tab{flex:1;padding:11px 8px}#homeScreen.show-multiplayer .account-panel{padding:20px 17px}}
 
 /* Multiplayer tab layout */
 .multiplayer-step-title{margin:22px 0 8px;padding-top:18px;border-top:1px solid var(--line-soft);color:var(--text);font-size:13px;font-weight:700}
@@ -498,24 +502,7 @@ html[data-theme="dark"] .daily-challenge-card .daily-route{background:var(--surf
 }
 
 
-/* Compact the Solo intro so its text sits together. */
-#homeScreen:not(.show-multiplayer):not(.show-daily) .eyebrow{
-  margin-bottom:6px;
-}
-/* Keep the Solo eyebrow line close to its text, like Multiplayer. */
-#homeScreen:not(.show-multiplayer):not(.show-daily) .eyebrow{
-  width:max-content;
-  max-width:100%;
-  justify-content:flex-start;
-  margin-bottom:4px;
-}
-#homeScreen:not(.show-multiplayer):not(.show-daily) .eyebrow-line{
-  flex:0 0 18px;
-}
-#homeScreen:not(.show-multiplayer):not(.show-daily) .hero h1{
-  line-height:1.02;
-  margin-bottom:8px;
-}
-#homeScreen:not(.show-multiplayer):not(.show-daily) .hero-copy{
-  line-height:1.35;
-}
+/* Keep the Solo intro compact without letting the settings card stretch its grid rows. */
+#homeScreen:not(.show-multiplayer):not(.show-daily) .hero-intro .eyebrow{margin-bottom:14px}
+#homeScreen:not(.show-multiplayer):not(.show-daily) .hero-intro h1{line-height:1.12;margin-bottom:20px}
+#homeScreen:not(.show-multiplayer):not(.show-daily) .hero-intro .hero-copy{line-height:1.75}
