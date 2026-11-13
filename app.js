@@ -1783,6 +1783,7 @@ async function declineFriendRequest(requestId){
   catch(error){friendMessage(authError(error),true);}
 }
 async function inviteFriend(friendUid,friendName){
+  if(currentUser){const blocked=await db.collection("userBlocks").doc(currentUser.uid).collection("blocked").doc(friendUid).get();if(blocked.exists)return friendMessage("Unblock this player before inviting them.",true);}
   if(!activeRoom || !activeRoomCode)return friendMessage("Create or join a game first, then invite "+friendName+".",true);
   if(activeRoom.status!=="waiting")return friendMessage("Invites can only be sent before the race starts.",true);
   try{
@@ -1847,7 +1848,8 @@ function listenForGameInvites(){
       if(change.type==="removed"){
         document.getElementById("game-invite-"+change.doc.id)?.remove();
       }else if(change.doc.data().status==="pending"){
-        showGameInvite(change.doc);
+        const invite=change.doc.data();
+        db.collection("userBlocks").doc(currentUser.uid).collection("blocked").doc(invite.fromUid).get().then(blocked=>{if(!blocked.exists)showGameInvite(change.doc);}).catch(()=>showGameInvite(change.doc));
       }
     });
   },error=>setToast(authError(error)));
