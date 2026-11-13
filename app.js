@@ -1164,7 +1164,7 @@ async function profileFor(user) {
     bestRaceTime:profile.bestRaceTime??null,fewestRaceClicks:profile.fewestRaceClicks??null,
     currentStreak:Number(profile.currentStreak||0),longestStreak:Number(profile.longestStreak||0),
     totalDailyRuns:Number(profile.totalDailyRuns||0),raceHistory:Array.isArray(profile.raceHistory)?profile.raceHistory.slice(-50):[],dailyHistory:Array.isArray(profile.dailyHistory)?profile.dailyHistory.slice(0,60):[],streakBadges:profile.streakBadges||[],
-    profileFrame:profile.profileFrame||"none",createdAt:profile.createdAt||null
+    profileFrame:profile.profileFrame||"none",profileBio:profile.profileBio||"",photoDataUrl:profile.photoDataUrl||"",createdAt:profile.createdAt||null
   },{merge:true}).catch(error=>console.warn("Could not sync public profile:",error));
   const key = usernameKey(currentUsername);
   if(key) {
@@ -1189,6 +1189,20 @@ auth.onAuthStateChanged(async user => {
 $("accountButton").addEventListener("click",()=>currentUser ? openProfile(currentUser.uid,currentUsername,true) : authMode("signin"));
 $("topFriendsButton").addEventListener("click",openFriends);
 $("profileClose").addEventListener("click",()=>$("profileModal").classList.add("hidden"));
+$("profileEditButton").addEventListener("click",async()=>{
+ try{const snap=await db.collection("users").doc(currentUser.uid).get();openProfileSettings(snap.data()||{});}
+ catch(error){setToast(authError(error));}
+});
+$("profileSettingsCancel").addEventListener("click",()=>$("profileSettingsPanel").classList.add("hidden"));
+$("settingsPhotoFile").addEventListener("change",async()=>{
+ const file=$("settingsPhotoFile").files?.[0];if(!file)return;
+ try{pendingProfilePhoto=await imageFileToDataUrl(file);$("settingsPhotoPreview").style.backgroundImage='url("'+pendingProfilePhoto+'")';$("settingsPhotoPreview").textContent="";}
+ catch(error){$("profileSettingsMessage").textContent=error.message;$("settingsPhotoFile").value="";}
+});
+$("removeProfilePhotoButton").addEventListener("click",()=>{
+ pendingProfilePhoto=false;$("settingsPhotoPreview").style.backgroundImage="";$("settingsPhotoPreview").textContent=($("settingsUsername").value||"W").trim().charAt(0).toUpperCase();$("settingsPhotoFile").value="";
+});
+$("saveProfileSettingsButton").addEventListener("click",saveProfileSettings);
 $("profileModal").addEventListener("click",e=>{if(e.target===$("profileModal"))$("profileModal").classList.add("hidden");});
 document.querySelectorAll("[data-friends-tab]").forEach(button=>button.addEventListener("click",()=>setFriendsTab(button.dataset.friendsTab)));
 $("googleSignIn").addEventListener("click",async()=>{try{await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());}catch(e){setToast(authError(e));}});
@@ -1243,10 +1257,74 @@ function renderProfileDaily(history){
  const host=$("profileDailyHistory");host.replaceChildren();if(!history.length){const p=document.createElement("p");p.className="profile-empty";p.textContent="No Daily Runs recorded yet.";host.appendChild(p);return;}
  history.slice().sort((a,b)=>(b.date||"").localeCompare(a.date||"")).slice(0,8).forEach(r=>{const row=document.createElement("div");row.className="profile-daily-row";const route=document.createElement("div");route.className="profile-race-route";const name=document.createElement("strong");name.textContent=(r.start||"Starting article")+" → "+(r.goal||"Destination");const date=document.createElement("span");date.textContent=r.date?new Date(r.date+"T00:00:00Z").toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"}):"Date unavailable";route.append(name,date);const score=document.createElement("span");score.textContent=r.clicks+" clicks · "+formatTime(r.seconds);row.append(route,score);host.appendChild(row);});
 }
+let pendingProfilePhoto = null;
+function applyProfileAvatar(photo,username){
+ const avatar=$("profileAvatar");
+ avatar.textContent=(username||"W").trim().charAt(0).toUpperCase();
+ avatar.style.backgroundImage=photo?'url("'+photo+'")':"";
+ avatar.classList.toggle("has-photo",!!photo);
+}
+async function imageFileToDataUrl(file){
+ if(!file||!file.type.startsWith("image/"))throw new Error("Choose an image file.");
+ if(file.size>8*1024*1024)throw new Error("Choose an image smaller than 8 MB.");
+ const bitmap=await createImageBitmap(file);
+ const scale=Math.min(1,256/Math.max(bitmap.width,bitmap.height));
+ const canvas=document.createElement("canvas");
+ canvas.width=Math.max(1,Math.round(bitmap.width*scale));canvas.height=Math.max(1,Math.round(bitmap.height*scale));
+ const context=canvas.getContext("2d");context.drawImage(bitmap,0,0,canvas.width,canvas.height);bitmap.close?.();
+ const data=canvas.toDataURL("image/jpeg",.78);
+ if(data.length>220000)throw new Error("That image is too detailed. Try a smaller image.");
+ return data;
+}
+function openProfileSettings(profile={}){
+ pendingProfilePhoto=null;
+ $("settingsUsername").value=profile.username||currentUsername||"";
+ $("settingsBio").value=profile.profileBio||"";
+ $("settingsPhotoFile").value="";
+ $("settingsPhotoPreview").style.backgroundImage=profile.photoDataUrl?'url("'+profile.photoDataUrl+'")':"";
+ $("settingsPhotoPreview").textContent=profile.photoDataUrl?"":(profile.username||currentUsername||"W").charAt(0).toUpperCase();
+ $("profileSettingsMessage").textContent="";
+ $("profileSettingsPanel").classList.remove("hidden");
+ $("profileSettingsPanel").scrollIntoView({behavior:"smooth",block:"start"});
+}
+async function saveProfileSettings(){
+ if(!currentUser)return;
+ const button=$("saveProfileSettingsButton");button.disabled=true;
+ $("profileSettingsMessage").textContent="Saving…";
+ try{
+  const nextName=$("settingsUsername").value.trim();
+  const nextBio=$("settingsBio").value.trim().slice(0,160);
+  const nextKey=usernameKey(nextName),oldKey=usernameKey(currentUsername);
+  if(nextName.length<3||nextName.length>20||!/^[a-zA-Z0-9_-]+$/.test(nextName))throw new Error("Username must be 3–20 characters and use only letters, numbers, _ or -.");
+  const userRef=db.collection("users").doc(currentUser.uid);
+  const publicRef=db.collection("publicProfiles").doc(currentUser.uid);
+  const nextIndexRef=db.collection("usernames").doc(nextKey);
+  const oldIndexRef=db.collection("usernames").doc(oldKey);
+  await db.runTransaction(async tx=>{
+   const [userSnap,newIndexSnap]=await Promise.all([tx.get(userRef),tx.get(nextIndexRef)]);
+   if(newIndexSnap.exists&&newIndexSnap.data().uid!==currentUser.uid)throw new Error("That username is already taken.");
+   const oldData=userSnap.exists?userSnap.data()||{}:{};
+   const photo=pendingProfilePhoto===null?(oldData.photoDataUrl||""):(pendingProfilePhoto||"");
+   const updates={username:nextName,profileBio:nextBio,photoDataUrl:photo};
+   tx.set(userRef,updates,{merge:true});
+   tx.set(nextIndexRef,{uid:currentUser.uid,username:nextName});
+   if(oldKey&&oldKey!==nextKey)tx.delete(oldIndexRef);
+   tx.set(publicRef,{uid:currentUser.uid,username:nextName,profileBio:nextBio,photoDataUrl:photo},{merge:true});
+  });
+  currentUsername=nextName;
+  $("profileTitle").textContent=nextName;$("profileBio").textContent=nextBio||"No bio added yet.";
+  applyProfileAvatar(pendingProfilePhoto===null?($("settingsPhotoPreview").style.backgroundImage?$("settingsPhotoPreview").style.backgroundImage.slice(5,-2):""):pendingProfilePhoto,nextName);
+  $("profileJoined").textContent=$("profileJoined").textContent;
+  $("profileSettingsPanel").classList.add("hidden");
+  $("accountButton").textContent=nextName.split(" ")[0];$("accountStatus").textContent=nextName;
+  setToast("Profile updated.");
+ }catch(error){$("profileSettingsMessage").textContent=error.message||authError(error);}
+ finally{button.disabled=false;}
+}
 async function openProfile(uid,name,isOwn=false){
  if(!uid)return;$("profileModal").classList.remove("hidden");$("profileTitle").textContent=name||"WikiRace player";$("profileAvatar").textContent=(name||"W").trim().charAt(0).toUpperCase();$("profileJoined").textContent="Loading profile…";$("profileInviteButton").classList.add("hidden");
  try{const snap=await db.collection(isOwn?"users":"publicProfiles").doc(uid).get();if(!snap.exists)throw new Error("This profile is not available.");const p=snap.data()||{};if(isOwn&&(!Array.isArray(p.raceHistory)||!p.raceHistory.length)){const publicSnap=await db.collection("publicProfiles").doc(uid).get();const publicData=publicSnap.exists?publicSnap.data()||{}:{};if(Array.isArray(publicData.raceHistory)&&publicData.raceHistory.length)p.raceHistory=publicData.raceHistory;if((!Array.isArray(p.dailyHistory)||!p.dailyHistory.length)&&Array.isArray(publicData.dailyHistory))p.dailyHistory=publicData.dailyHistory;}
- $("profileTitle").textContent=p.username||name||"WikiRace player";$("profileAvatar").textContent=(p.username||name||"W").trim().charAt(0).toUpperCase();$("profileJoined").textContent=p.createdAt?.toDate?.()?("Member since "+p.createdAt.toDate().toLocaleDateString(undefined,{month:"long",year:"numeric"})):(isOwn?"Your WikiRace profile":"WikiRace player");
+ $("profileTitle").textContent=p.username||name||"WikiRace player";applyProfileAvatar(p.photoDataUrl||"",p.username||name);$("profileBio").textContent=p.profileBio||"No bio added yet.";$("profileEditButton").classList.toggle("hidden",!isOwn);$("profileSettingsPanel").classList.add("hidden");$("profileJoined").textContent=p.createdAt?.toDate?.()?("Member since "+p.createdAt.toDate().toLocaleDateString(undefined,{month:"long",year:"numeric"})):(isOwn?"Your WikiRace profile":"WikiRace player");
  $("viewProfileRaces").textContent=String(p.races||0);$("viewProfileWins").textContent=String(p.wins||0);$("viewProfileBestTime").textContent=p.bestRaceTime==null?"—":formatTime(p.bestRaceTime);$("viewProfileFewest").textContent=p.fewestRaceClicks==null?"—":String(p.fewestRaceClicks);
  $("viewProfileStreak").textContent=String(p.currentStreak||0);$("viewProfileLongest").textContent=String(p.longestStreak||0);const badges=p.streakBadges||[];$("viewProfileBadges").replaceChildren();
  if(!badges.length){const e=document.createElement("span");e.className="profile-empty";e.textContent="No Daily Run badges yet.";$("viewProfileBadges").appendChild(e);}else badges.slice().sort((x,y)=>x-y).forEach(m=>{const e=document.createElement("span");e.className="profile-badge";e.textContent=formatDailyBadge(m);$("viewProfileBadges").appendChild(e);});
