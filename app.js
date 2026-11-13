@@ -7,6 +7,7 @@ const REST = "https://en.wikipedia.org/w/rest.php/v1/page/";
 const GUEST_STATS_KEY = "wikirace-guest-stats";
 let currentUser = null;
 let currentUsername = "";
+let viewedProfileUid = "";
 const $ = (id) => document.getElementById(id);
 
 const screens = {
@@ -1215,6 +1216,7 @@ auth.onAuthStateChanged(async user => {
 $("accountButton").addEventListener("click",()=>currentUser ? openProfile(currentUser.uid,currentUsername,true) : authMode("signin"));
 $("topFriendsButton").addEventListener("click",openFriends);
 $("profileClose").addEventListener("click",()=>$("profileModal").classList.add("hidden"));
+$("profileBlockButton")?.addEventListener("click",blockViewedProfile);$("profileReportButton")?.addEventListener("click",reportViewedProfile);
 $("profileEditButton").addEventListener("click",async()=>{
  try{const snap=await db.collection("users").doc(currentUser.uid).get();openProfileSettings(snap.data()||{});}
  catch(error){setToast(authError(error));}
@@ -1462,11 +1464,13 @@ function setProfileTitle(name){
 }
 async function openProfile(uid,name,isOwn=false){
  if(!uid)return;
+ viewedProfileUid=uid;
  $("profileModal").classList.remove("hidden");
  setProfileTitle(name||"WikiRace player");
  $("profileAvatar").textContent=(name||"W").trim().charAt(0).toUpperCase();
  $("profileJoined").textContent="Loading profile…";
  $("profileInviteButton").classList.add("hidden");
+ $("profileBlockButton")?.classList.add("hidden");$("profileReportButton")?.classList.add("hidden");
  try{
   let p=null;
   let profileError=null;
@@ -1521,6 +1525,8 @@ async function openProfile(uid,name,isOwn=false){
   const races=Array.isArray(p.raceHistory)?p.raceHistory:[];
   profilePeriodOffset=0;window.profileDisplayedRaceHistory=races;renderProgression(p);renderProfileFavorites(p);renderProfileLineChart(races);renderProfileRaces(races);renderProfileDaily(Array.isArray(p.dailyHistory)?p.dailyHistory:[]);renderProfileAchievements(p,races,Array.isArray(p.dailyHistory)?p.dailyHistory:[]);
   $("profileInviteButton").classList.toggle("hidden",isOwn||!currentUser);
+  $("profileBlockButton").classList.toggle("hidden",isOwn||!currentUser);
+  $("profileReportButton").classList.toggle("hidden",isOwn||!currentUser);
   $("profileInviteButton").onclick=()=>inviteFriend(uid,p.username||name||"player");
  }catch(error){
   console.error("WikiRace profile could not load:",error);
@@ -1529,6 +1535,8 @@ async function openProfile(uid,name,isOwn=false){
  }
 }
 
+async function blockViewedProfile(){if(!currentUser||!viewedProfileUid||viewedProfileUid===currentUser.uid)return;const confirmed=confirm("Block this player? They will be added to your blocked list.");if(!confirmed)return;try{await db.collection("userBlocks").doc(currentUser.uid).collection("blocked").doc(viewedProfileUid).set({uid:viewedProfileUid,createdAt:firebase.firestore.FieldValue.serverTimestamp()});$("profileBlockButton").textContent="Blocked";$("profileBlockButton").disabled=true;setToast("Player blocked.");}catch(error){setToast(authError(error));}}
+async function reportViewedProfile(){if(!currentUser||!viewedProfileUid||viewedProfileUid===currentUser.uid)return;const reason=prompt("Why are you reporting this player?");if(!reason||!reason.trim())return;try{await db.collection("userReports").add({reporterUid:currentUser.uid,targetUid:viewedProfileUid,reason:reason.trim().slice(0,500),createdAt:firebase.firestore.FieldValue.serverTimestamp(),status:"new"});setToast("Report submitted.");}catch(error){setToast(authError(error));}}
 function renderProfileAchievements(profile={},races=[],dailyHistory=[]){
  const host=$("profileAchievements");if(!host)return;host.replaceChildren();
  const total=Number(profile.races||0),wins=Number(profile.wins||0);
