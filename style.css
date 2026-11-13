@@ -367,11 +367,20 @@ html[data-theme="dark"] .daily-route,html[data-theme="dark"] .leaderboard-list l
 html[data-theme="dark"] .chat-launcher{background:#8ab4f8;color:#202122}
 @media(max-width:560px){.chat-launcher{right:14px;bottom:14px}.multiplayer-chat.chat-open{right:10px;bottom:65px;width:calc(100vw - 20px)}}
 
-/* Shared countdown shown before every race starts. */
-.race-countdown{position:fixed;inset:0;z-index:120;display:grid;place-items:center;background:#202122eF;color:#fff;pointer-events:all}
-.race-countdown span{font:700 clamp(76px,18vw,150px)/1 Arial, sans-serif;letter-spacing:-.06em;animation:race-countdown-pop .35s ease-out}
-@keyframes race-countdown-pop{from{opacity:0;transform:scale(.72)}to{opacity:1;transform:scale(1)}}
-@media(prefers-reduced-motion:reduce){.race-countdown span{animation:none}}
+/* Shared race countdown: each beat has its own motion. */
+.race-countdown{position:fixed;inset:0;z-index:120;display:grid;place-items:center;overflow:hidden;background:radial-gradient(circle at center,#35383b 0,#202122 48%,#111 100%);color:#fff;pointer-events:all}
+.race-countdown::before,.race-countdown::after{content:"";position:absolute;left:50%;top:50%;width:min(72vw,520px);aspect-ratio:1;border:1px solid #ffffff20;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none}
+.race-countdown::after{width:min(92vw,680px);border-color:#ffffff12}
+.race-countdown span{position:relative;z-index:1;display:block;font:800 clamp(88px,20vw,176px)/.9 Arial,sans-serif;letter-spacing:-.09em;text-shadow:0 12px 38px #0009;will-change:transform,opacity}
+.race-countdown span.count-3{animation:race-three .72s cubic-bezier(.16,.85,.25,1) both}
+.race-countdown span.count-2{animation:race-two .68s cubic-bezier(.2,.9,.25,1) both}
+.race-countdown span.count-1{animation:race-one .62s cubic-bezier(.15,.8,.25,1.2) both}
+.race-countdown span.count-go{font-size:clamp(76px,17vw,148px);letter-spacing:-.055em;color:#fff;animation:race-go .78s cubic-bezier(.12,.9,.22,1.25) both;text-shadow:0 0 24px #9dc7ff88,0 12px 38px #0009}
+@keyframes race-three{0%{opacity:0;transform:translateY(-90px) rotateX(55deg) scale(1.5);filter:blur(12px)}65%{opacity:1;transform:translateY(8px) rotateX(-8deg) scale(.96);filter:blur(0)}100%{opacity:1;transform:translateY(0) rotateX(0) scale(1)}}
+@keyframes race-two{0%{opacity:0;transform:translateX(130px) skewX(-18deg) scale(.82);filter:blur(8px)}70%{opacity:1;transform:translateX(-8px) skewX(2deg) scale(1.04);filter:blur(0)}100%{opacity:1;transform:translateX(0) skewX(0) scale(1)}}
+@keyframes race-one{0%{opacity:0;transform:translateY(110px) scale(.35);filter:blur(5px)}58%{opacity:1;transform:translateY(-12px) scale(1.13);filter:blur(0)}78%{transform:translateY(4px) scale(.96)}100%{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes race-go{0%{opacity:0;transform:scale(.25) rotate(-12deg);filter:blur(10px)}55%{opacity:1;transform:scale(1.18) rotate(3deg);filter:blur(0)}72%{transform:scale(.94) rotate(-1deg)}100%{opacity:1;transform:scale(1) rotate(0)}}
+@media(prefers-reduced-motion:reduce){.race-countdown span{animation:none;filter:none}}
 
 /* Multiplayer finish and results */
 .multiplayer-results{margin:24px 0 18px;padding:18px;border:1px solid var(--line);border-radius:4px;background:var(--surface-soft);text-align:left}
