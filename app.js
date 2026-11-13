@@ -962,7 +962,21 @@ function leaveRace() {
   showScreen("home");
 }
 
+let activeHomeTab = "solo";
 function setHomeTab(tab) {
+  if (tab === activeHomeTab) return;
+  const tabOrder = { solo: 0, multiplayer: 1, daily: 2 };
+  const direction = tabOrder[tab] > tabOrder[activeHomeTab] ? "right" : "left";
+  activeHomeTab = tab;
+
+  // Slide the home view in the direction of the selected tab.
+  const homeViews = [$("homeScreen").querySelector(".hero"), $("dailyPanel")];
+  homeViews.forEach(view => {
+    view.classList.remove("tab-swipe-from-left", "tab-swipe-from-right");
+    void view.offsetWidth;
+    view.classList.add(direction === "right" ? "tab-swipe-from-right" : "tab-swipe-from-left");
+  });
+
   const multiplayer = tab === "multiplayer";
   const daily = tab === "daily";
   $("homeScreen").classList.toggle("show-multiplayer", multiplayer);
