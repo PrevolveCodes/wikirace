@@ -143,6 +143,7 @@ function showScreen(name) {
   Object.entries(screens).forEach(([key, element]) => {
     element.classList.toggle("active", key === name);
   });
+  $("homeTabs").classList.toggle("hidden", name === "game");
   window.scrollTo({ top: 0, behavior: "instant" });
 }
 
