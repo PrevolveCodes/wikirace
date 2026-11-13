@@ -901,7 +901,12 @@ async function showRaceCountdown(startedAt=null){
     const elapsed=Math.max(0,Date.now()-startMs);
     const index=Math.min(3,Math.floor(elapsed/1000));
     const value=["3","2","1","GO!"][index];
-    if(value!==previous){label.textContent=value;previous=value;}
+    if(value!==previous){
+      label.textContent=value;
+      label.className="count-"+(value==="GO!"?"go":value);
+      overlay.dataset.step=value==="GO!"?"go":value;
+      previous=value;
+    }
     await new Promise(resolve=>setTimeout(resolve,40));
   }
   overlay.classList.add("hidden");
