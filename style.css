@@ -25,7 +25,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
 .theme-control:after{content:"▾";position:absolute;right:9px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
 main{flex:1;width:100%}
 .screen{display:none}.screen.active{display:block}
-.hero{max-width:1160px;margin:66px auto 70px;display:grid;grid-template-columns:minmax(0,.92fr) minmax(440px,1.08fr);grid-template-areas:"eyebrow setup" "title setup" "copy setup" "tabs tabs" "account account" "foot foot";column-gap:64px;row-gap:0;align-items:start;text-align:left}
+.hero{max-width:1160px;margin:66px auto 70px;display:grid;grid-template-columns:minmax(0,.92fr) minmax(440px,1.08fr);grid-template-areas:"eyebrow setup" "title setup" "copy setup" "account account" "foot foot";column-gap:64px;row-gap:0;align-items:start;text-align:left}
 .eyebrow{grid-area:eyebrow;display:flex;align-items:center;gap:10px;margin:10px 0 14px;color:var(--muted);font:600 11px Arial,sans-serif;letter-spacing:1.1px;text-transform:uppercase}
 .eyebrow-line{width:18px;height:1px;background:var(--line)}
 h1,h2,h3,p{margin-top:0}
@@ -394,15 +394,15 @@ html[data-theme="dark"] .chat-launcher{background:#8ab4f8;color:#202122}
 
 
 /* Separate Solo and Multiplayer home tabs */
-.home-tabs{grid-area:tabs;display:flex;gap:4px;margin:28px 0 22px;border-bottom:1px solid var(--line);width:100%}
+.home-tabs{display:flex;gap:4px;margin:0 auto;width:min(1160px,calc(100% - 64px));border-bottom:1px solid var(--line)}
 .home-tab{position:relative;padding:11px 18px;border:0;border-bottom:3px solid transparent;background:transparent;color:var(--muted);font:600 14px Arial,sans-serif;cursor:pointer}
 .home-tab:hover{color:var(--text);background:var(--surface-soft)}
 .home-tab.active{border-bottom-color:var(--blue);color:var(--text)}
 #homeScreen:not(.show-multiplayer) .account-panel{display:none}
-#homeScreen.show-multiplayer .hero{grid-template-columns:minmax(0,1fr);grid-template-areas:"eyebrow" "title" "copy" "tabs" "account" "foot";max-width:900px}
+#homeScreen.show-multiplayer .hero{grid-template-columns:minmax(0,1fr);grid-template-areas:"eyebrow" "title" "copy" "account" "foot";max-width:900px}
 #homeScreen.show-multiplayer .hero h1{max-width:760px}
 #homeScreen.show-multiplayer .hero-copy{max-width:700px}
 #homeScreen.show-multiplayer .setup-card,#homeScreen.show-multiplayer .daily-panel{display:none}
 #homeScreen.show-multiplayer .account-panel{grid-area:account;display:block;width:100%;max-width:760px;margin:0 auto;padding:28px}
 #homeScreen.show-multiplayer .hero-foot{grid-area:foot}
-@media(max-width:760px){.home-tabs{margin:22px 0 18px}.home-tab{flex:1;padding:11px 8px}#homeScreen.show-multiplayer .account-panel{padding:20px 17px}}
+@media(max-width:760px){.home-tabs{width:calc(100% - 32px)}.home-tab{flex:1;padding:11px 8px}#homeScreen.show-multiplayer .account-panel{padding:20px 17px}}
