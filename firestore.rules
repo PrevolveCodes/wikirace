@@ -95,6 +95,24 @@ service cloud.firestore {
       allow delete: if signedIn() && request.auth.uid in resource.data.members;
     }
 
+    match /matchmakingQueue/{userId} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+                    && request.auth.uid == userId
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.status == "waiting";
+      allow update: if signedIn() && (
+        request.auth.uid == userId
+        || (resource.data.status == "waiting"
+            && request.resource.data.status == "matched"
+            && request.resource.data.uid == resource.data.uid
+            && request.resource.data.matchedByUid == request.auth.uid
+            && request.resource.data.roomId is string
+            && getAfter(/databases/$(database)/documents/rooms/$(request.resource.data.roomId)).data.hostUid == request.auth.uid)
+      );
+      allow delete: if signedIn() && request.auth.uid == userId;
+    }
+
     match /rooms/{roomId} {
       allow read: if signedIn();
       allow create: if signedIn() && request.resource.data.hostUid == request.auth.uid && request.resource.data.status == "waiting";
