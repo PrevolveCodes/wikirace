@@ -63,7 +63,7 @@
               <div class="custom-route-heading">RACE RULES</div>
               <label class="back-setting"><input type="checkbox" id="backEnabled" checked> Allow going back to previous articles</label>
               <label class="back-setting"><input type="checkbox" id="blockFindShortcuts"> Disable Ctrl+F, Ctrl+G, and F3</label>
-              <label class="back-setting"><input type="checkbox" id="blockBrowserNavigation"> Disable browser back/forward shortcuts</label>
+              <label class="back-setting"><input type="checkbox" id="blockBrowserNavigation"> Disable browser back/forward shortcuts</label><label class="back-setting"><input type="checkbox" id="soundEffectsEnabled" checked> Sound effects</label>
             </div>
             <button class="primary-button" id="startButton"><span>Start a race</span><span class="button-arrow">→</span></button>
             <p class="setup-note">No account needed. Just you and the entire encyclopedia.</p>
@@ -182,7 +182,7 @@
  <div class="profile-settings-heading"><div><span class="section-kicker">ACCOUNT</span><h2>Edit profile</h2></div></div>
  <div class="profile-settings-layout">
   <div class="profile-photo-editor"><div class="profile-photo-preview" id="settingsPhotoPreview">W</div><label class="secondary-button profile-file-label">Choose picture<input id="settingsPhotoFile" type="file" accept="image/*"></label><button class="text-button" id="removeProfilePhotoButton" type="button">Remove picture</button><span class="profile-muted">Square images work best. Max 8 MB.</span></div>
-  <div class="profile-settings-fields"><label>Username<input id="settingsUsername" maxlength="20" autocomplete="off"></label><label>Bio <span class="profile-muted">(160 characters)</span><textarea id="settingsBio" maxlength="160" rows="3" placeholder="A little about you…"></textarea></label><p class="profile-settings-hint">Your username and picture appear on your public WikiRace profile.</p></div>
+  <div class="profile-settings-fields"><label>Username<input id="settingsUsername" maxlength="20" autocomplete="off"></label><label>Bio <span class="profile-muted">(160 characters)</span><textarea id="settingsBio" maxlength="160" rows="3" placeholder="A little about you…"></textarea></label><label>Display title<select id="settingsTitle"><option value="">Automatic title</option><option value="Article Explorer">Article Explorer</option><option value="Page Navigator">Page Navigator</option><option value="Knowledge Expert">Knowledge Expert</option><option value="Wiki Master">Wiki Master</option><option value="Encyclopedia Legend">Encyclopedia Legend</option></select></label><p class="profile-settings-hint">Your username and picture appear on your public WikiRace profile.</p></div>
  </div>
  <p class="profile-settings-message" id="profileSettingsMessage" aria-live="polite"></p>
  <div class="profile-settings-actions"><button class="text-button" id="profileSettingsCancel" type="button">Cancel</button><button class="primary-button" id="saveProfileSettingsButton" type="button">Save changes</button></div>
