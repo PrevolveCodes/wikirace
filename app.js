@@ -1313,7 +1313,7 @@ async function saveProfileSettings(){
    tx.set(publicRef,{uid:currentUser.uid,username:nextName,profileBio:nextBio,photoDataUrl:photo},{merge:true});
   });
   currentUsername=nextName;
-  $("profileTitle").textContent=nextName;$("profileBio").textContent=nextBio||"No bio added yet.";
+  setProfileTitle(nextName);$("profileBio").textContent=nextBio||"No bio added yet.";
   applyProfileAvatar(pendingProfilePhoto===null?($("settingsPhotoPreview").style.backgroundImage?$("settingsPhotoPreview").style.backgroundImage.slice(5,-2):""):pendingProfilePhoto,nextName);
   $("profileJoined").textContent=$("profileJoined").textContent;
   $("profileSettingsPanel").classList.add("hidden");
@@ -1322,10 +1322,18 @@ async function saveProfileSettings(){
  }catch(error){$("profileSettingsMessage").textContent=error.message||authError(error);}
  finally{button.disabled=false;}
 }
+function setProfileTitle(name){
+ const title=$("profileTitle");
+ if(!title)return;
+ const badge=$("profileOwnerBadge");
+ const label=document.createTextNode(name||"WikiRace player");
+ if(badge)title.replaceChildren(label,badge);
+ else title.replaceChildren(label);
+}
 async function openProfile(uid,name,isOwn=false){
  if(!uid)return;
  $("profileModal").classList.remove("hidden");
- $("profileTitle").textContent=name||"WikiRace player";
+ setProfileTitle(name||"WikiRace player");
  $("profileAvatar").textContent=(name||"W").trim().charAt(0).toUpperCase();
  $("profileJoined").textContent="Loading profile…";
  $("profileInviteButton").classList.add("hidden");
@@ -1358,10 +1366,9 @@ async function openProfile(uid,name,isOwn=false){
    if(!publicSnap.exists)throw new Error("This player’s public profile has not been created yet. Ask them to sign in and refresh WikiRace.");
    p=publicSnap.data()||{};
   }
-  const profileTitle=$("profileTitle");
+  setProfileTitle(p.username||name||"WikiRace player");
   const ownerBadge=$("profileOwnerBadge");
-  profileTitle.replaceChildren(document.createTextNode(p.username||name||"WikiRace player"),ownerBadge);
-  ownerBadge.classList.toggle("hidden",!(isOwn&&String(currentUser?.email||"").toLowerCase()==="prevolveyt@gmail.com"));
+  if(ownerBadge)ownerBadge.classList.toggle("hidden",!(isOwn&&String(currentUser?.email||"").toLowerCase()==="prevolveyt@gmail.com"));
   applyProfileAvatar(p.photoDataUrl||"",p.username||name);
   $("profileBio").textContent=p.profileBio||"No bio added yet.";
   $("profileEditButton").classList.toggle("hidden",!isOwn);
