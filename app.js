@@ -1323,15 +1323,70 @@ async function saveProfileSettings(){
  finally{button.disabled=false;}
 }
 async function openProfile(uid,name,isOwn=false){
- if(!uid)return;$("profileModal").classList.remove("hidden");$("profileTitle").textContent=name||"WikiRace player";$("profileAvatar").textContent=(name||"W").trim().charAt(0).toUpperCase();$("profileJoined").textContent="Loading profile…";$("profileInviteButton").classList.add("hidden");
- try{const snap=await db.collection(isOwn?"users":"publicProfiles").doc(uid).get();if(!snap.exists)throw new Error("This profile is not available.");const p=snap.data()||{};if(isOwn&&(!Array.isArray(p.raceHistory)||!p.raceHistory.length)){const publicSnap=await db.collection("publicProfiles").doc(uid).get();const publicData=publicSnap.exists?publicSnap.data()||{}:{};if(Array.isArray(publicData.raceHistory)&&publicData.raceHistory.length)p.raceHistory=publicData.raceHistory;if((!Array.isArray(p.dailyHistory)||!p.dailyHistory.length)&&Array.isArray(publicData.dailyHistory))p.dailyHistory=publicData.dailyHistory;}
- $("profileTitle").textContent=p.username||name||"WikiRace player";$("profileOwnerBadge").classList.toggle("hidden",!(isOwn&&String(currentUser?.email||"").toLowerCase()==="prevolveyt@gmail.com"));applyProfileAvatar(p.photoDataUrl||"",p.username||name);$("profileBio").textContent=p.profileBio||"No bio added yet.";$("profileEditButton").classList.toggle("hidden",!isOwn);$("profileSettingsPanel").classList.add("hidden");$("profileJoined").textContent=p.createdAt?.toDate?.()?("Member since "+p.createdAt.toDate().toLocaleDateString(undefined,{month:"long",year:"numeric"})):(isOwn?"Your WikiRace profile":"WikiRace player");
- $("viewProfileRaces").textContent=String(p.races||0);$("viewProfileWins").textContent=String(p.wins||0);$("viewProfileBestTime").textContent=p.bestRaceTime==null?"—":formatTime(p.bestRaceTime);$("viewProfileFewest").textContent=p.fewestRaceClicks==null?"—":String(p.fewestRaceClicks);
- $("viewProfileStreak").textContent=String(p.currentStreak||0);$("viewProfileLongest").textContent=String(p.longestStreak||0);const badges=p.streakBadges||[];$("viewProfileBadges").replaceChildren();
- if(!badges.length){const e=document.createElement("span");e.className="profile-empty";e.textContent="No Daily Run badges yet.";$("viewProfileBadges").appendChild(e);}else badges.slice().sort((x,y)=>x-y).forEach(m=>{const e=document.createElement("span");e.className="profile-badge";e.textContent=formatDailyBadge(m);$("viewProfileBadges").appendChild(e);});
- const races=Array.isArray(p.raceHistory)?p.raceHistory:[];renderProfileLineChart(races);renderProfileRaces(races);renderProfileDaily(Array.isArray(p.dailyHistory)?p.dailyHistory:[]);
- $("profileInviteButton").classList.toggle("hidden",isOwn||!currentUser);$("profileInviteButton").onclick=()=>inviteFriend(uid,p.username||name||"player");
- }catch(e){setToast(e.message||authError(e));}
+ if(!uid)return;
+ $("profileModal").classList.remove("hidden");
+ $("profileTitle").textContent=name||"WikiRace player";
+ $("profileAvatar").textContent=(name||"W").trim().charAt(0).toUpperCase();
+ $("profileJoined").textContent="Loading profile…";
+ $("profileInviteButton").classList.add("hidden");
+ try{
+  let p=null;
+  let profileError=null;
+  if(isOwn){
+   try{
+    const ownSnap=await db.collection("users").doc(uid).get();
+    if(ownSnap.exists)p=ownSnap.data()||{};
+   }catch(error){profileError=error;}
+   if(!p){
+    try{
+     const publicSnap=await db.collection("publicProfiles").doc(uid).get();
+     if(publicSnap.exists)p=publicSnap.data()||{};
+    }catch(error){profileError=error;}
+   }
+   if(!p&&profileError)throw profileError;
+   if(!p)p={uid,username:name||currentUsername||"WikiRace player",races:0,wins:0};
+   if(!Array.isArray(p.raceHistory)||!p.raceHistory.length){
+    try{
+     const publicSnap=await db.collection("publicProfiles").doc(uid).get();
+     const publicData=publicSnap.exists?publicSnap.data()||{}:{};
+     if(Array.isArray(publicData.raceHistory)&&publicData.raceHistory.length)p.raceHistory=publicData.raceHistory;
+     if((!Array.isArray(p.dailyHistory)||!p.dailyHistory.length)&&Array.isArray(publicData.dailyHistory))p.dailyHistory=publicData.dailyHistory;
+    }catch(error){console.warn("Could not load public profile history:",error);}
+   }
+  }else{
+   const publicSnap=await db.collection("publicProfiles").doc(uid).get();
+   if(!publicSnap.exists)throw new Error("This player’s public profile has not been created yet. Ask them to sign in and refresh WikiRace.");
+   p=publicSnap.data()||{};
+  }
+  $("profileTitle").textContent=p.username||name||"WikiRace player";
+  $("profileOwnerBadge").classList.toggle("hidden",!(isOwn&&String(currentUser?.email||"").toLowerCase()==="prevolveyt@gmail.com"));
+  applyProfileAvatar(p.photoDataUrl||"",p.username||name);
+  $("profileBio").textContent=p.profileBio||"No bio added yet.";
+  $("profileEditButton").classList.toggle("hidden",!isOwn);
+  $("profileSettingsPanel").classList.add("hidden");
+  $("profileJoined").textContent=p.createdAt?.toDate?.()?("Member since "+p.createdAt.toDate().toLocaleDateString(undefined,{month:"long",year:"numeric"})):(isOwn?"Your WikiRace profile":"WikiRace player");
+  $("viewProfileRaces").textContent=String(p.races||0);
+  $("viewProfileWins").textContent=String(p.wins||0);
+  $("viewProfileBestTime").textContent=p.bestRaceTime==null?"—":formatTime(p.bestRaceTime);
+  $("viewProfileFewest").textContent=p.fewestRaceClicks==null?"—":String(p.fewestRaceClicks);
+  $("viewProfileStreak").textContent=String(p.currentStreak||0);
+  $("viewProfileLongest").textContent=String(p.longestStreak||0);
+  const badges=p.streakBadges||[];
+  $("viewProfileBadges").replaceChildren();
+  if(!badges.length){
+   const empty=document.createElement("span");empty.className="profile-empty";empty.textContent="No Daily Run badges yet."; $("viewProfileBadges").appendChild(empty);
+  }else badges.slice().sort((x,y)=>x-y).forEach(m=>{
+   const badge=document.createElement("span");badge.className="profile-badge";badge.textContent=formatDailyBadge(m);$("viewProfileBadges").appendChild(badge);
+  });
+  const races=Array.isArray(p.raceHistory)?p.raceHistory:[];
+  renderProfileLineChart(races);renderProfileRaces(races);renderProfileDaily(Array.isArray(p.dailyHistory)?p.dailyHistory:[]);
+  $("profileInviteButton").classList.toggle("hidden",isOwn||!currentUser);
+  $("profileInviteButton").onclick=()=>inviteFriend(uid,p.username||name||"player");
+ }catch(error){
+  console.error("WikiRace profile could not load:",error);
+  $("profileJoined").textContent="Could not load profile";
+  setToast(error.code?authError(error):(error.message||"Could not load this profile."));
+ }
 }
 function friendMessage(message,isError=false){$("friendsMessage").textContent=message;$("friendsMessage").classList.toggle("error",isError);}
 function openFriends(){
