@@ -1140,6 +1140,7 @@ async function profileFor(user) {
 }
 auth.onAuthStateChanged(async user => {
   currentUser = user;
+  if(user)$("guestSignupPrompt")?.classList.add("hidden");
   currentUsername = "";
   renderAccount();
   if (user) { try { await profileFor(user); await claimGuestRaceStats(user); listenForGameInvites(); startPresenceTracking(); } catch(e) { setToast(authError(e)); } }
