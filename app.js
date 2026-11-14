@@ -332,6 +332,7 @@ function updateStats() {
 }
 
 function startTimer() {
+  $("winXpProgress")?.classList.add("hidden");
   window.clearInterval(state.timerInterval);
   state.startedAt = Date.now();
   state.seconds=0;state.realSeconds=0;
@@ -799,7 +800,6 @@ async function openDailyHistory() {
 
 function finishRace() {
   if(state.mode==="multiplayer" && multiplayerLocalFinished)return;
-  $("winXpProgress")?.classList.add("hidden");
   finishTimeFreezeAccounting();
   state.realSeconds=Math.floor((Date.now()-state.startedAt)/1000);
   const displaySeconds=state.seconds,raceSeconds=state.realSeconds||state.seconds;
@@ -825,6 +825,15 @@ function finishRace() {
   $("multiplayerResults")?.classList.toggle("hidden",state.mode!=="multiplayer");
   $("playAgainButton").classList.toggle("hidden",state.mode==="multiplayer");
   $("homeButton").textContent=state.mode==="multiplayer"?"Leave game":"Back to home";
+  if(currentUser){
+    const immediateGain=awardXp(state.clicks,raceSeconds,state.difficulty);
+    const panel=$("winXpProgress");
+    panel?.classList.remove("hidden");
+    const earned=$("winXpEarned");
+    if(earned)earned.textContent="+"+immediateGain+" XP";
+    const total=$("winXpTotal");
+    if(total)total.textContent="Updating total…";
+  }else $("winXpProgress")?.classList.add("hidden");
   showScreen("win");
   launchConfetti();
   playRaceSound("win");
