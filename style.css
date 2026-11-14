@@ -681,3 +681,5 @@ html[data-theme="dark"] .daily-challenge-card .daily-route{background:var(--surf
 .win-xp-level-up{display:block;margin-top:12px;color:var(--blue);font-size:12px;letter-spacing:1.2px;animation:win-xp-pop .45s ease both}
 @keyframes win-xp-pop{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
 @media(prefers-reduced-motion:reduce){.win-xp-level-up{animation:none}.win-xp-track i{transition:none!important}}
+
+.profile-earned-heading{margin:16px 0 8px;color:var(--muted);font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase}.profile-earned-badges{display:flex;flex-wrap:wrap;gap:7px}.profile-earned-badges .achievement-badge{display:inline-flex;align-items:center;gap:5px;padding:7px 9px;border:1px solid var(--line);background:var(--surface-soft);color:var(--text);font-size:11px;font-weight:700}.profile-earned-badges .profile-empty{font-size:12px}
