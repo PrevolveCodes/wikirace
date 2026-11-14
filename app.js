@@ -313,10 +313,10 @@ function stopTimer() {
   state.timerInterval = null;
 }
 
-function setArticleLoading(title) {
-  $("currentTitle").textContent = title;
+function setArticleLoading() {
+  // Keep the current article visible while the next one loads.
+  // Do not insert a loading screen or artificial delay between pages.
   $("articleError").classList.add("hidden");
-  $("articleContent").innerHTML = '<div class="article-loading"><div class="loader"></div><p>Loading the Wikipedia article…</p></div>';
 }
 
 function getWikipediaStyles(parsed) {
@@ -443,8 +443,7 @@ async function loadArticle(title, countClick = false) {
   updateBackButton();
   updateStats();
 updateBackButton();
-  $("currentTitle").textContent = title;
-  setArticleLoading(title);
+  setArticleLoading();
 
   if (normaliseTitle(title) === normaliseTitle(state.goal)) {
     state.loading = false;
