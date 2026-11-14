@@ -1233,7 +1233,7 @@ async function profileFor(user) {
   currentUsername = profile.username || (user.displayName || (user.email || "Player").split("@")[0]).slice(0,20);
   renderProfileProgress(profile);renderProgression(profile);renderDailyBonus(profile.dailyBonusClaimedDate===utcDateKey());
   await db.collection("publicProfiles").doc(user.uid).set({
-    uid:user.uid,username:currentUsername,
+    uid:user.uid,username:currentUsername,isOwner:String(user.email||"").toLowerCase()==="prevolveyt@gmail.com",
     races:Number(profile.races||0),wins:Number(profile.wins||0),xp:Number(profile.xp||0),longestStreak:Number(profile.longestStreak||0),customTitle:profile.customTitle||"",
     bestRaceTime:profile.bestRaceTime??null,fewestRaceClicks:profile.fewestRaceClicks??null,
     currentStreak:Number(profile.currentStreak||0),longestStreak:Number(profile.longestStreak||0),
@@ -1552,7 +1552,7 @@ async function openProfile(uid,name,isOwn=false){
   }
   setProfileTitle(p.username||name||"WikiRace player");
   const ownerBadge=$("profileOwnerBadge");
-  if(ownerBadge)ownerBadge.classList.toggle("hidden",!(isOwn&&String(currentUser?.email||"").toLowerCase()==="prevolveyt@gmail.com"));
+  if(ownerBadge)ownerBadge.classList.toggle("hidden",!(p.isOwner===true||(isOwn&&String(currentUser?.email||"").toLowerCase()==="prevolveyt@gmail.com")));
   applyProfileAvatar(p.photoDataUrl||"",p.username||name);
   $("profileBio").textContent=p.profileBio||"No bio added yet.";
   $("profileEditButton").classList.toggle("hidden",!isOwn);
