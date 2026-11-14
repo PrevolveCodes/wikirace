@@ -275,6 +275,48 @@ function getDailyBonus(){const day=Math.floor(Date.now()/86400000),challenges=[{
 function renderDailyBonus(claimed=false){const challenge=getDailyBonus();const title=$("dailyBonusTitle"),description=$("dailyBonusDescription"),status=$("dailyBonusStatus"),card=$("dailyBonusCard");if(title)title.textContent=challenge.title;if(description)description.textContent=challenge.description;if(status){status.textContent=claimed?"DONE":"NOT COMPLETE";status.classList.toggle("is-done",claimed);}if(card)card.classList.toggle("is-complete",claimed);}
 
 function renderProgression(profile={}){const xp=Number(profile.xp||0),level=levelFromXp(xp),floor=xpForNextLevel(level-1),ceil=xpForNextLevel(level),pct=Math.max(0,Math.min(100,(xp-floor)/(ceil-floor)*100));const el=$("profileLevel");if(el)el.textContent="Level "+level;const label=$("profileXp");if(label)label.textContent=xp+" XP · "+Math.max(0,ceil-xp)+" to next level";const bar=$("profileXpBar");if(bar)bar.style.width=pct+"%";const title=$("profileTitleLabel");if(title)title.textContent=profile.customTitle||titleForLevel(level);}
+function animateWinXp(oldXp,newXp,gain){
+  const panel=$("winXpProgress");if(!panel)return;
+  const earned=$("winXpEarned"),levelLabel=$("winXpLevel"),total=$("winXpTotal"),fill=$("winXpFill"),note=$("winXpLevelUp");
+  panel.classList.remove("hidden","xp-animating");
+  if(earned)earned.textContent="+"+gain+" XP";
+  if(total)total.textContent=newXp+" total XP";
+  const startLevel=levelFromXp(oldXp),endLevel=levelFromXp(newXp);
+  if(levelLabel)levelLabel.textContent="LEVEL "+startLevel;
+  if(note){note.textContent=endLevel>startLevel?"LEVEL UP!":" ";note.classList.toggle("hidden",endLevel<=startLevel);}
+  const startFloor=xpForNextLevel(startLevel-1),startCeil=xpForNextLevel(startLevel);
+  if(fill)fill.style.width=Math.max(0,Math.min(100,(oldXp-startFloor)/(startCeil-startFloor)*100))+"%";
+  void panel.offsetWidth;
+  panel.classList.add("xp-animating");
+  const reduced=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const step=(level,from,to)=>{
+    if(!fill)return;
+    const floor=xpForNextLevel(level-1),ceil=xpForNextLevel(level);
+    const fromPct=Math.max(0,Math.min(100,(from-floor)/(ceil-floor)*100));
+    const toPct=Math.max(0,Math.min(100,(to-floor)/(ceil-floor)*100));
+    fill.style.transition="none";fill.style.width=fromPct+"%";void fill.offsetWidth;
+    if(reduced){fill.style.width=toPct+"%";return;}
+    fill.style.transition="width 950ms cubic-bezier(.2,.75,.25,1)";
+    fill.style.width=toPct+"%";
+  };
+  if(reduced){step(endLevel,oldXp,newXp);if(levelLabel)levelLabel.textContent="LEVEL "+endLevel;return;}
+  let level=startLevel,cursor=oldXp;
+  const advance=()=>{
+    const threshold=xpForNextLevel(level);
+    const target=Math.min(newXp,threshold);
+    step(level,cursor,target);
+    if(target>=threshold&&level<endLevel){
+      window.setTimeout(()=>{
+        level++;cursor=threshold;
+        if(levelLabel)levelLabel.textContent="LEVEL "+level;
+        if(note)note.classList.remove("hidden");
+        fill.style.transition="none";fill.style.width="0%";void fill.offsetWidth;
+        window.setTimeout(advance,180);
+      },1000);
+    }else if(levelLabel)levelLabel.textContent="LEVEL "+level;
+  };
+  advance();
+}
 function playRaceSound(kind){try{if(localStorage.getItem("wikirace-sounds")==="off")return;const C=window.AudioContext||window.webkitAudioContext;if(!C)return;const ctx=new C(),osc=ctx.createOscillator(),gain=ctx.createGain(),now=ctx.currentTime;const tone={click:[520,.04],win:[760,.14],level:[920,.2],start:[640,.08]}[kind]||[520,.04];osc.connect(gain);gain.connect(ctx.destination);osc.frequency.setValueAtTime(tone[0],now);osc.frequency.exponentialRampToValueAtTime(tone[0]*1.35,now+tone[1]);gain.gain.setValueAtTime(.05,now);gain.gain.exponentialRampToValueAtTime(.001,now+tone[1]);osc.start(now);osc.stop(now+tone[1]);osc.onended=()=>ctx.close();}catch(error){}}
 function renderProfileFavorites(profile={}){const host=$("profileFavorites");if(!host)return;host.replaceChildren();const items=Array.isArray(profile.favoriteArticles)?profile.favoriteArticles:[];if(!items.length){const p=document.createElement("p");p.className="profile-empty";p.textContent="No favorites yet. Use ☆ Favorite while viewing a Wikipedia article.";host.append(p);return;}items.forEach(title=>{const a=document.createElement("a");a.href="https://en.wikipedia.org/wiki/"+encodeURIComponent(title.replace(/ /g,"_"));a.target="_blank";a.rel="noopener noreferrer";a.textContent=title;host.append(a);});}
 async function toggleFavoriteArticle(){if(!currentUser)return authMode("signin");const title=state.current;if(!title)return;const ref=db.collection("users").doc(currentUser.uid);try{const snap=await ref.get(),p=snap.data()||{},items=Array.isArray(p.favoriteArticles)?p.favoriteArticles:[],exists=items.includes(title),next=exists?items.filter(x=>x!==title):[...items,title].slice(-30);await ref.set({favoriteArticles:next},{merge:true});await db.collection("publicProfiles").doc(currentUser.uid).set({favoriteArticles:next},{merge:true});const b=$("favoriteArticleButton");b.textContent=next.includes(title)?"★ Saved":"☆ Favorite";b.classList.toggle("is-favorite",next.includes(title));setToast(exists?"Removed from favorites.":"Added to favorites.");}catch(error){setToast(authError(error));}}
@@ -800,11 +842,13 @@ function finishRace() {
     db.runTransaction(async transaction=>{
       const snapshot=await transaction.get(profileRef);
       const profile=snapshot.data()||{};
+      const oldXp=Number(profile.xp||0);
+      const xpGain=baseXp+(bonusEligible&&profile.dailyBonusClaimedDate!==bonusDate?15:0);
       transaction.set(profileRef,{
         races:Number(profile.races||0)+1,
         wins:Number(profile.wins||0)+1,
-        xp:Number(profile.xp||0)+baseXp+(bonusEligible&&profile.dailyBonusClaimedDate!==bonusDate?15:0),
-        spendableXp:Number(profile.spendableXp||0)+baseXp+(bonusEligible&&profile.dailyBonusClaimedDate!==bonusDate?15:0),
+        xp:oldXp+xpGain,
+        spendableXp:Number(profile.spendableXp||0)+xpGain,
         ...(state.timeFreezeRefundPending?{powerupInventory:{...normalizeInventory(profile.powerupInventory||{}),timeFreeze:normalizeInventory(profile.powerupInventory||{}).timeFreeze+1}}:{}),
         ...(bonusEligible&&profile.dailyBonusClaimedDate!==bonusDate?{dailyBonusClaimedDate:bonusDate}:{}),
         bestRaceTime:profile.bestRaceTime==null?raceSeconds:Math.min(Number(profile.bestRaceTime),raceSeconds),
@@ -812,8 +856,11 @@ function finishRace() {
         raceHistory:[...(Array.isArray(profile.raceHistory)?profile.raceHistory:[]),{date:new Date().toISOString(),start:state.start,goal:state.goal,clicks:raceClicks,seconds:raceSeconds,difficulty:state.difficulty||"standard",mode:state.mode||"solo"}].slice(-50),
         lastRaceAt:firebase.firestore.FieldValue.serverTimestamp()
       },{merge:true});
-    }).then(()=>profileRef.get()).then(async snapshot=>{
+      return {oldXp,newXp:oldXp+xpGain,xpGain};
+    }).then(async award=>{
+      const snapshot=await profileRef.get();
       const profile=snapshot.data()||{};
+      animateWinXp(award.oldXp,award.newXp,award.xpGain);
       renderProfileProgress(profile);renderProgression(profile);renderDailyBonus(profile.dailyBonusClaimedDate===bonusDate);if(state.timeFreezeRefundPending)setToast("Time Freeze refunded because it would have changed a time-based reward.");loadPowerupWallet();
       await db.collection("publicProfiles").doc(userId).set({
         uid:userId,username:currentUsername,races:Number(profile.races||0),wins:Number(profile.wins||0),xp:Number(profile.xp||0),longestStreak:Number(profile.longestStreak||0),customTitle:profile.customTitle||"",
