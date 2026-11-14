@@ -1707,8 +1707,13 @@ function renderProfileAchievements(profile={},races=[],dailyHistory=[]){
   ["marathon","Marathon","Spend 10 minutes or more on a single race","1 race",marathon,1,"🧠"]
  ];
  let unlocked=0;
+ const earnedBadgeHost=$("viewProfileAchievementBadges");
+ if(earnedBadgeHost)earnedBadgeHost.replaceChildren();
  achievements.forEach(([id,title,description,target,current,goal,icon])=>{
-  const earned=current>=goal;if(earned)unlocked++;
+  const earned=current>=goal;if(earned){
+   unlocked++;
+   if(earnedBadgeHost){const badge=document.createElement("span");badge.className="profile-badge achievement-badge";badge.textContent=icon+" "+title;badge.title=description;earnedBadgeHost.appendChild(badge);}
+  }
   const card=document.createElement("article");card.className="profile-achievement"+(earned?" is-earned":" is-locked");
   const symbol=document.createElement("span");symbol.className="profile-achievement-icon";symbol.textContent=icon;
   const content=document.createElement("div");content.className="profile-achievement-copy";
@@ -1723,6 +1728,7 @@ function renderProfileAchievements(profile={},races=[],dailyHistory=[]){
   const count=document.createElement("small");count.textContent=Math.min(current,goal)+" / "+goal+" "+target.replace(/^\d+ /,"");
   progress.append(track,count);content.append(heading,detail,progress);card.append(symbol,content);host.appendChild(card);
  });
+ if(earnedBadgeHost&&!unlocked){const empty=document.createElement("span");empty.className="profile-empty";empty.textContent="No achievements unlocked yet.";earnedBadgeHost.appendChild(empty);}
  const summary=document.createElement("p");summary.className="profile-achievement-summary";summary.textContent=unlocked+" of "+achievements.length+" achievements unlocked";
  host.prepend(summary);
 }
