@@ -665,3 +665,19 @@ html[data-theme="dark"] .daily-challenge-card .daily-route{background:var(--surf
 .profile-banner-copy h1 .owner-badge{min-height:24px;box-sizing:border-box}
 @media(max-width:760px){.profile-banner{flex-wrap:wrap}.profile-banner-actions{width:100%;justify-content:flex-start}}
 @media(max-width:420px){.profile-banner-actions{gap:6px}.profile-banner-actions>button{min-height:34px;padding:8px 10px}}
+
+
+/* Animated XP reward on the race results screen */
+.win-xp-progress{margin:20px 0 22px;padding:17px 18px;border:1px solid var(--line);background:var(--surface-soft);text-align:left}
+.win-xp-heading,.win-xp-level-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.win-xp-heading>span{font-size:10px;letter-spacing:1.1px;color:var(--muted);font-weight:700}
+.win-xp-heading>strong{font-size:19px;color:var(--blue)}
+.win-xp-level-row{margin:12px 0 8px}
+.win-xp-level-row strong{font-size:12px;letter-spacing:.7px}
+.win-xp-level-row span{font-size:11px;color:var(--muted)}
+.win-xp-track{height:11px;overflow:hidden;background:var(--line);position:relative}
+.win-xp-track i{display:block;width:0;height:100%;background:linear-gradient(90deg,#397de8,#76b7ff);box-shadow:0 0 9px #438cff;position:relative}
+.win-xp-track i::after{content:"";position:absolute;right:-2px;top:-3px;width:5px;height:17px;background:#d9edff;box-shadow:0 0 9px 3px #70adff}
+.win-xp-level-up{display:block;margin-top:12px;color:var(--blue);font-size:12px;letter-spacing:1.2px;animation:win-xp-pop .45s ease both}
+@keyframes win-xp-pop{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.win-xp-level-up{animation:none}.win-xp-track i{transition:none!important}}
