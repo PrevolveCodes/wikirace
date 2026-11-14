@@ -296,7 +296,7 @@ function animateWinXp(oldXp,newXp,gain){
     const toPct=Math.max(0,Math.min(100,(to-floor)/(ceil-floor)*100));
     fill.style.transition="none";fill.style.width=fromPct+"%";void fill.offsetWidth;
     if(reduced){fill.style.width=toPct+"%";return;}
-    fill.style.transition="width 950ms cubic-bezier(.2,.75,.25,1)";
+    fill.style.transition="width 2200ms cubic-bezier(.16,1,.3,1)";
     fill.style.width=toPct+"%";
   };
   if(reduced){step(endLevel,oldXp,newXp);if(levelLabel)levelLabel.textContent="LEVEL "+endLevel;return;}
@@ -311,8 +311,8 @@ function animateWinXp(oldXp,newXp,gain){
         if(levelLabel)levelLabel.textContent="LEVEL "+level;
         if(note)note.classList.remove("hidden");
         fill.style.transition="none";fill.style.width="0%";void fill.offsetWidth;
-        window.setTimeout(advance,180);
-      },1000);
+        window.setTimeout(advance,350);
+      },2250);
     }else if(levelLabel)levelLabel.textContent="LEVEL "+level;
   };
   advance();
@@ -825,12 +825,13 @@ function finishRace() {
   $("multiplayerResults")?.classList.toggle("hidden",state.mode!=="multiplayer");
   $("playAgainButton").classList.toggle("hidden",state.mode==="multiplayer");
   $("homeButton").textContent=state.mode==="multiplayer"?"Leave game":"Back to home";
+  let estimatedXp=0,immediateGain=0;
   if(currentUser){
-    const immediateGain=awardXp(state.clicks,raceSeconds,state.difficulty);
+    immediateGain=awardXp(state.clicks,raceSeconds,state.difficulty);
+    estimatedXp=Math.max(0,Number(localStorage.getItem("wikirace-xp-"+currentUser.uid)||0));
     const panel=$("winXpProgress");
     panel?.classList.remove("hidden");
-    const earned=$("winXpEarned");
-    if(earned)earned.textContent="+"+immediateGain+" XP";
+    animateWinXp(estimatedXp,estimatedXp+immediateGain,immediateGain);
     const total=$("winXpTotal");
     if(total)total.textContent="Updating total…";
   }else $("winXpProgress")?.classList.add("hidden");
@@ -870,7 +871,13 @@ function finishRace() {
     }).then(async award=>{
       const snapshot=await profileRef.get();
       const profile=snapshot.data()||{};
-      animateWinXp(award.oldXp,award.newXp,award.xpGain);
+      localStorage.setItem("wikirace-xp-"+userId,String(award.newXp));
+      if(award.oldXp!==estimatedXp||award.xpGain!==immediateGain)animateWinXp(award.oldXp,award.newXp,award.xpGain);
+      else {
+        const earned=$("winXpEarned"),total=$("winXpTotal");
+        if(earned)earned.textContent="+"+award.xpGain+" XP";
+        if(total)total.textContent=award.newXp+" total XP";
+      }
       renderProfileProgress(profile);renderProgression(profile);renderDailyBonus(profile.dailyBonusClaimedDate===bonusDate);if(state.timeFreezeRefundPending)setToast("Time Freeze refunded because it would have changed a time-based reward.");loadPowerupWallet();
       await db.collection("publicProfiles").doc(userId).set({
         uid:userId,username:currentUsername,races:Number(profile.races||0),wins:Number(profile.wins||0),xp:Number(profile.xp||0),longestStreak:Number(profile.longestStreak||0),customTitle:profile.customTitle||"",
