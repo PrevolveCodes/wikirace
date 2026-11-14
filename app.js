@@ -799,6 +799,7 @@ async function openDailyHistory() {
 
 function finishRace() {
   if(state.mode==="multiplayer" && multiplayerLocalFinished)return;
+  $("winXpProgress")?.classList.add("hidden");
   finishTimeFreezeAccounting();
   state.realSeconds=Math.floor((Date.now()-state.startedAt)/1000);
   const displaySeconds=state.seconds,raceSeconds=state.realSeconds||state.seconds;
