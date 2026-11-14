@@ -1002,7 +1002,7 @@ async function beginRace() {
     state.clicks = 0;
     state.seconds = 0;
     state.loading = false;
-    resetRacePowerups($("soloPowerupsEnabled")?.checked!==false);
+    resetRacePowerups($("soloPowerupsEnabled")?.checked!==true);
     const customRoute = await chooseCustomRoute();
     const [start, goal] = customRoute || await chooseRoute();
     state.start = start;
@@ -1159,10 +1159,10 @@ $("powerupShopButton")?.addEventListener("click",openPowerupShop);
 $("powerupShopClose")?.addEventListener("click",()=>$("powerupShopModal").classList.add("hidden"));
 $("powerupShopModal")?.addEventListener("click",e=>{if(e.target===$("powerupShopModal"))$("powerupShopModal").classList.add("hidden");});
 $("exchangeXpButton")?.addEventListener("click",exchangeSpendableXp);
-$("soloPowerupsEnabled")?.addEventListener("change",()=>localStorage.setItem("wikirace-powerups-enabled",String($("soloPowerupsEnabled").checked)));
-$("multiplayerPowerupsEnabled")?.addEventListener("change",()=>localStorage.setItem("wikirace-multiplayer-powerups-enabled",String($("multiplayerPowerupsEnabled").checked)));
-if($("soloPowerupsEnabled"))$("soloPowerupsEnabled").checked=localStorage.getItem("wikirace-powerups-enabled")!=="false";
-if($("multiplayerPowerupsEnabled"))$("multiplayerPowerupsEnabled").checked=localStorage.getItem("wikirace-multiplayer-powerups-enabled")!=="false";
+$("soloPowerupsEnabled")?.addEventListener("change",()=>localStorage.setItem("wikirace-powerups-enabled",String(!$("soloPowerupsEnabled").checked)));
+$("multiplayerPowerupsEnabled")?.addEventListener("change",()=>localStorage.setItem("wikirace-multiplayer-powerups-enabled",String(!$("multiplayerPowerupsEnabled").checked)));
+if($("soloPowerupsEnabled"))$("soloPowerupsEnabled").checked=localStorage.getItem("wikirace-powerups-enabled")==="false";
+if($("multiplayerPowerupsEnabled"))$("multiplayerPowerupsEnabled").checked=localStorage.getItem("wikirace-multiplayer-powerups-enabled")==="false";
 $("favoriteArticleButton")?.addEventListener("click",toggleFavoriteArticle);
 $("leaderboardButton")?.addEventListener("click",()=>openLeaderboard("global"));
 $("leaderboardClose")?.addEventListener("click",()=>$("leaderboardModal").classList.add("hidden"));
@@ -2054,7 +2054,7 @@ async function tryFindRandomOpponent(){
       .where("status","==","waiting")
       .limit(20).get();
     const candidates=waiting.docs.filter(doc=>
-      doc.id!==currentUser.uid && doc.data().difficulty===state.difficulty && doc.data().powerupsEnabled===($("multiplayerPowerupsEnabled")?.checked!==false)
+      doc.id!==currentUser.uid && doc.data().difficulty===state.difficulty && doc.data().powerupsEnabled===($("multiplayerPowerupsEnabled")?.checked!==true)
     );
     for(const candidate of candidates){
       const roomRef=db.collection("rooms").doc();
@@ -2068,7 +2068,7 @@ async function tryFindRandomOpponent(){
         tx.set(roomRef,{
           code,hostUid:currentUser.uid,status:"waiting",
           createdAt:firebase.firestore.FieldValue.serverTimestamp(),
-          start:"",goal:"",difficulty:state.difficulty,options:{powerupsEnabled:$("multiplayerPowerupsEnabled")?.checked!==false,blockFind:raceOptions.blockFind,blockBrowserNavigation:raceOptions.blockBrowserNavigation,backEnabled},matchType:"random"
+          start:"",goal:"",difficulty:state.difficulty,options:{powerupsEnabled:$("multiplayerPowerupsEnabled")?.checked!==true,blockFind:raceOptions.blockFind,blockBrowserNavigation:raceOptions.blockBrowserNavigation,backEnabled},matchType:"random"
         });
         tx.set(roomRef.collection("players").doc(currentUser.uid),{
           uid:currentUser.uid,username:playerName,clicks:0,seconds:0,current:"",finished:false,ready:false
@@ -2105,7 +2105,7 @@ async function startRandomMatch(){
     matchmakingRef=ref;
     await ref.set({
       uid:currentUser.uid,username:currentUsername||await username(),
-      status:"waiting",difficulty:state.difficulty,powerupsEnabled:$("multiplayerPowerupsEnabled")?.checked!==false,
+      status:"waiting",difficulty:state.difficulty,powerupsEnabled:$("multiplayerPowerupsEnabled")?.checked!==true,
       createdAt:firebase.firestore.FieldValue.serverTimestamp()
     });
     matchmakingUnsubscribe=ref.onSnapshot(snapshot=>{
@@ -2127,7 +2127,7 @@ async function createRoom(){
   if(!currentUser)return authMode("signin");
   try{
     const code=makeRoomCode(), name=await username(), ref=db.collection("rooms").doc();
-    await ref.set({code,hostUid:currentUser.uid,status:"waiting",createdAt:firebase.firestore.FieldValue.serverTimestamp(),start:"",goal:"",difficulty:state.difficulty||"medium",options:{powerupsEnabled:$("multiplayerPowerupsEnabled")?.checked!==false,blockFind:raceOptions.blockFind,blockBrowserNavigation:raceOptions.blockBrowserNavigation,backEnabled}});
+    await ref.set({code,hostUid:currentUser.uid,status:"waiting",createdAt:firebase.firestore.FieldValue.serverTimestamp(),start:"",goal:"",difficulty:state.difficulty||"medium",options:{powerupsEnabled:$("multiplayerPowerupsEnabled")?.checked!==true,blockFind:raceOptions.blockFind,blockBrowserNavigation:raceOptions.blockBrowserNavigation,backEnabled}});
     await ref.collection("players").doc(currentUser.uid).set({uid:currentUser.uid,username:name,clicks:0,seconds:0,current:"",finished:false,ready:false});
     await listenRoom(ref.id,code);
   }catch(e){setToast(authError(e));}
@@ -2150,7 +2150,7 @@ async function startRoomRace(){
   const b=$("roomStatus").querySelector(".room-start-button");if(b)b.disabled=true;
   try{
     const custom=await chooseCustomRoute(), route=custom || await chooseRoute();
-    await db.collection("rooms").doc(activeRoom.id).update({start:route[0],goal:route[1],difficulty:state.difficulty,options:{blockFind:raceOptions.blockFind,blockBrowserNavigation:raceOptions.blockBrowserNavigation,backEnabled,powerupsEnabled:$("multiplayerPowerupsEnabled")?.checked!==false},status:"racing",startedAt:firebase.firestore.FieldValue.serverTimestamp()});
+    await db.collection("rooms").doc(activeRoom.id).update({start:route[0],goal:route[1],difficulty:state.difficulty,options:{blockFind:raceOptions.blockFind,blockBrowserNavigation:raceOptions.blockBrowserNavigation,backEnabled,powerupsEnabled:$("multiplayerPowerupsEnabled")?.checked!==true},status:"racing",startedAt:firebase.firestore.FieldValue.serverTimestamp()});
   }catch(e){setToast(authError(e));if(b)b.disabled=false;}
 }
 function renderRoomChat(messages){
